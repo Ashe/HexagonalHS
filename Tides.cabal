@@ -4,7 +4,6 @@ version:             0.1.0.0
 -- description:
 homepage:               https://github.com/ashe/Tides#readme
 license:                BSD3
-license-file:           LICENSE
 author:                 Ashley Smith
 maintainer:             ashley@aas.sh
 copyright:              2020 Ashley Smith
@@ -17,7 +16,8 @@ executable Tides
   hs-source-dirs:       src
   main-is:              Main.hs
   default-language:     Haskell2010
-  build-depends:        base >= 4.7 && < 5,
-                        bindings-GLFW,
-                        GLFW-b,
-                        OpenGL
+  build-depends:        base >= 4.7 && < 5
+                        , mtl
+                        , bindings-GLFW
+                        , GLFW-b
+                        , OpenGL
