@@ -1,4 +1,6 @@
-module Main where
+module Client
+  ( initialise
+  ) where
 
 import qualified Graphics.UI.GLFW as GLFW
 import Graphics.Rendering.OpenGL (($=))
@@ -10,8 +12,8 @@ import Control.Concurrent (threadDelay)
 import System.Environment (getArgs, getProgName)
 
 -- Entry point
-main :: IO ()
-main = do
+initialise :: IO ()
+initialise = do
 
   -- Check arguments
   args <- getArgs

@@ -12,9 +12,9 @@ build-type:             Simple
 cabal-version:          >=1.10
 extra-source-files:     README.md
 
-executable Tides
+library
   hs-source-dirs:       src
-  main-is:              Main.hs
+  exposed-modules:      Client
   default-language:     Haskell2010
   build-depends:        base >= 4.7 && < 5
                         , stm
@@ -22,3 +22,10 @@ executable Tides
                         , bindings-GLFW
                         , GLFW-b
                         , OpenGL
+
+executable Tides
+  hs-source-dirs:       client
+  main-is:              Main.hs
+  default-language:     Haskell2010
+  build-depends:        base
+                        , Tides
