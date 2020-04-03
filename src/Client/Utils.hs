@@ -2,8 +2,6 @@ module Client.Utils
   ( withWindow
   ) where
 
-import Client.Event
-
 import qualified Graphics.UI.GLFW as GLFW
 import Control.Monad (when)
 
