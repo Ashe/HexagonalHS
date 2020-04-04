@@ -23,6 +23,7 @@ library
                         , GLFW-b
                         , OpenGL
   other-modules:          Client.Utils
+                        , Client.Event
 
 executable Tides
   hs-source-dirs:       client
