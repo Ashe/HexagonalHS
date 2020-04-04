@@ -1,4 +1,4 @@
-module Client.Event
+module Client.App.Event
   ( Event (..)
   , provideCallbacks
   ) where

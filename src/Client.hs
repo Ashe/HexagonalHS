@@ -11,29 +11,9 @@ import Control.Monad.RWS.Strict (RWST, evalRWST, liftIO, get, put, asks, modify)
 import Control.Concurrent (threadDelay)
 import Data.Maybe (catMaybes)
 
+import Client.App
+import Client.App.Event
 import Client.Utils
-import Client.Event
-
--- Read-only environment data
-data Env = Env
-  { envWindow         :: !GLFW.Window
-  , envEventsChan     :: TQueue Event
-  }
-
--- Data to be modified in game
-data State = State 
-  { stateWindowWidth  :: Int
-  , stateWindowHeight :: Int
-  , stateMouseDown    :: Bool
-  , stateDragging     :: Bool
-  , stateDragStartX   :: Double
-  , stateDragStartY   :: Double
-  }
-
--- Contains information about the game
-type App = RWST Env [Int] State IO
-
---------------------------------------------------------------------------------
 
 -- Entry point
 initialise :: Int -> Int -> IO ()

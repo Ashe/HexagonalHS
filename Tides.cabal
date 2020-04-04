@@ -22,8 +22,9 @@ library
                         , bindings-GLFW
                         , GLFW-b
                         , OpenGL
-  other-modules:          Client.Utils
-                        , Client.Event
+  other-modules:          Client.App
+                        , Client.App.Event
+                        , Client.Utils
 
 executable Tides
   hs-source-dirs:       client
