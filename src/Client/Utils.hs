@@ -1,3 +1,4 @@
+-- A module containing helpful functions unrelated to other modules
 module Client.Utils
   ( withWindow
   ) where

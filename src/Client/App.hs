@@ -1,7 +1,10 @@
+-- A module defining how an app is structured
 module Client.App
   ( App (..)
+  , Scene (..)
   , Env (..)
   , State (..)
+  , Event (..)
   ) where
 
 import qualified Graphics.UI.GLFW as GLFW
@@ -28,3 +31,21 @@ data State = State
   , stateDragStartX   :: Double
   , stateDragStartY   :: Double
   }
+
+-- Something that can run in the app
+class Scene s where
+
+  -- Initialise the scene before play
+  begin       :: s -> App ()
+
+  -- Respond to keypresses
+  handleEvent :: s -> Event -> App ()
+
+  -- Update the scene every frame
+  update      :: s -> Double -> App ()
+
+  -- Render the scene every frame
+  render      :: s -> App ()
+
+  -- Notify the scene of changes in window size
+  resize      :: s -> App ()

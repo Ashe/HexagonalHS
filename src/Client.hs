@@ -1,3 +1,4 @@
+-- Entry point for client program
 module Client
   ( initialise
   ) where
@@ -13,9 +14,10 @@ import Data.Maybe (catMaybes)
 
 import Client.App
 import Client.App.Event
+import Client.GameScene
 import Client.Utils
 
--- Entry point
+-- Create a window and begin to play the game
 initialise :: Int -> Int -> IO ()
 initialise w h = do
 
@@ -47,21 +49,26 @@ setupOpenGL = do
 
 -- Setup and play the game
 startGame :: Env -> State -> IO ()
-startGame env state = void $ evalRWST (resizeGame >> game) env state
+startGame env state = void $ evalRWST beginLoop env state
+  where scene = GameScene
+        beginLoop = begin scene >> game scene
 
 -- Define main game loop
-game :: App ()
-game = do
+game :: Scene s => s -> App ()
+game scene = do
 
   -- Retrieve the window
   win <- asks envWindow
 
   -- Poll and process events
-  handleEvents
+  handleEvents scene
+
+  -- Update the scene
+  update scene 0.0
 
   -- Render the game
   liftIO $ GL.clear [GL.ColorBuffer, GL.DepthBuffer]
-  -- @TODO: Render
+  render scene
 
   -- Swap buffers
   liftIO $ do
@@ -70,106 +77,18 @@ game = do
 
   -- Proceed to the next game frame unless quitting
   shouldQuit <- liftIO $ GLFW.windowShouldClose win
-  unless shouldQuit game
+  unless shouldQuit $ game scene
 
 --------------------------------------------------------------------------------
 
 -- Respond to user input and window events
-handleEvents :: App ()
-handleEvents = do
+handleEvents :: Scene s => s -> App ()
+handleEvents scene = do
   liftIO GLFW.pollEvents
   queue <- asks envEventsChan
   maybeEvents <- liftIO $ atomically $ tryReadTQueue queue
   case maybeEvents of
     Just event -> do
-      handleEvent event
-      handleEvents
+      handleEvent scene event
+      handleEvents scene
     Nothing -> pure ()
-
--- Handle each event individually
-handleEvent :: Event -> App ()
-handleEvent ev =
-  case ev of
-
-    -- Report errors and close the window
-    (EventError e s) -> do
-      printEvent "Error" [show e, show s]
-      win <- asks envWindow
-      liftIO $ GLFW.setWindowShouldClose win True
-
-    -- Perform final actions before program terminates
-    (EventWindowClose _) -> printEvent "Close window" []
-
-    -- Resize the window
-    (EventFramebufferSize _ width height) -> do
-      printEvent "Resize frame" [show width, show height]
-      modify $ \s -> s
-        { stateWindowWidth  = width
-        , stateWindowHeight = height
-        }
-      resizeGame
-
-    -- Handle mouse clicks
-    (EventMouseButton _ mb mbs mk) -> do
-      printEvent "Mouse press" [show mb, show mbs, showModifierKeys mk]
-      when (mb == GLFW.MouseButton'1) $ do
-        let pressed = mbs == GLFW.MouseButtonState'Pressed
-        modify $ \s -> s
-          { stateMouseDown = pressed
-          }
-        unless pressed $
-          modify $ \s -> s
-            { stateDragging = False
-            }
-
-    -- Handle mouse movement
-    (EventCursorPos _ x y) -> do
-        let x' = round x :: Int
-            y' = round y :: Int
-        state <- get
-        when (stateMouseDown state && not (stateDragging state)) $
-          put $ state
-            { stateDragging        = True
-            , stateDragStartX      = x
-            , stateDragStartY      = y
-            }
-
-    -- Handle keypresses
-    (EventKey win k scancode ks mk) -> do
-      printEvent "Key press" [show k, show scancode, show ks, showModifierKeys mk]
-      when (ks == GLFW.KeyState'Pressed) $
-        -- Q, Esc: exit
-        when (k == GLFW.Key'Q || k == GLFW.Key'Escape) $
-          liftIO $ GLFW.setWindowShouldClose win True
-
-    -- When a character is entered
-    (EventChar _ c) -> pure ()
-
-    -- Otherwise do nothing
-    _ -> pure ()
-
--- Outputs the event to terminal
-printEvent :: String -> [String] -> App ()
-printEvent cbname fields =
-    liftIO $ putStrLn $ cbname ++ ": " ++ unwords fields
-
--- Outputs modifer keys for debugging
-showModifierKeys :: GLFW.ModifierKeys -> String
-showModifierKeys mk =
-    "[mod keys: " ++ keys ++ "]"
-  where
-    keys = if null xs then "none" else unwords xs
-    xs = catMaybes ys
-    ys = [ if GLFW.modifierKeysShift   mk then Just "shift"   else Nothing
-         , if GLFW.modifierKeysControl mk then Just "control" else Nothing
-         , if GLFW.modifierKeysAlt     mk then Just "alt"     else Nothing
-         , if GLFW.modifierKeysSuper   mk then Just "super"   else Nothing
-         ]
-
---------------------------------------------------------------------------------
-
--- Notify program when the window size has been changed
-resizeGame :: App ()
-resizeGame = liftIO $ putStrLn "resizeGame not yet implemented"
-
---------------------------------------------------------------------------------
