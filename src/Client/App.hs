@@ -42,7 +42,7 @@ class Scene s where
   handleEvent :: s -> Event -> App ()
 
   -- Update the scene every frame
-  update      :: s -> Double -> App ()
+  update      :: s -> Double -> App s
 
   -- Render the scene every frame
   render      :: s -> App ()

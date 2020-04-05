@@ -1,6 +1,7 @@
 -- A module containing helpful functions unrelated to other modules
 module Client.Utils
   ( withWindow
+  , getNow
   ) where
 
 import qualified Graphics.UI.GLFW as GLFW
@@ -40,3 +41,13 @@ withWindow width height title f = do
   where
     simpleErrorCallback e s =
       putStrLn $ unwords [show e, show s]
+
+--------------------------------------------------------------------------------
+
+-- Get the current time
+getNow :: IO Double
+getNow = do
+  mNow <- GLFW.getTime
+  case mNow of
+      (Just time) -> pure time
+      _ -> putStrLn "[Note] Retrying getNow" >> getNow

@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 -- Entry point for client program
 module Client
   ( initialise
@@ -51,21 +53,28 @@ setupOpenGL = do
 startGame :: Env -> State -> IO ()
 startGame env state = void $ evalRWST beginLoop env state
   where scene = GameScene
-        beginLoop = begin scene >> game scene
+        beginLoop = do
+          now <- liftIO getNow
+          begin scene 
+          game scene now
 
 -- Define main game loop
-game :: Scene s => s -> App ()
-game scene = do
+game :: Scene s => s -> Double -> App ()
+game !scene !ticks = do
 
   -- Retrieve the window
   win <- asks envWindow
+
+  -- Calculate delta time
+  now <- liftIO getNow
+  let dt = now - ticks
 
   -- Poll and process events
   liftIO GLFW.pollEvents
   processEvents scene
 
   -- Update the scene
-  update scene 0.0
+  updatedScene <- update scene dt
 
   -- Render the game
   liftIO $ GL.clear [GL.ColorBuffer, GL.DepthBuffer]
@@ -78,7 +87,7 @@ game scene = do
 
   -- Proceed to the next game frame unless quitting
   shouldQuit <- liftIO $ GLFW.windowShouldClose win
-  unless shouldQuit $ game scene
+  unless shouldQuit $ game updatedScene now
 
 --------------------------------------------------------------------------------
 

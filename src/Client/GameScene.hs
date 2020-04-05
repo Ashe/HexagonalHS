@@ -24,7 +24,7 @@ instance Scene GameScene where
   handleEvent scene _ = pure ()
 
   -- Update entities in the scene
-  update scene dt = pure ()
+  update scene dt = pure scene
 
   -- Display the scene
   render scene = pure ()
