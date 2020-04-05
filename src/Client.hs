@@ -55,6 +55,7 @@ startGame env state = void $ evalRWST beginLoop env state
   where beginLoop = do
           now <- liftIO getNow
           scene <- createGameScene
+          resizeWindow
           run scene now
 
 -- Define main game loop
@@ -90,6 +91,18 @@ run !scene !ticks = do
 
 --------------------------------------------------------------------------------
 
+-- Resize the window and reposition camera
+resizeWindow :: App ()
+resizeWindow = do
+    state <- get
+    let width  = stateWindowWidth  state
+        height = stateWindowHeight state
+        pos   = GL.Position 0 0
+        size  = GL.Size (fromIntegral width) (fromIntegral height)
+    liftIO $ GL.viewport $= (pos, size)
+
+--------------------------------------------------------------------------------
+
 -- Respond to user input and window events
 processEvents :: Scene s => s -> App ()
 processEvents scene = do
@@ -116,11 +129,12 @@ processEvent scene ev = do
     (EventWindowClose _) -> liftIO $ putStrLn "Closing application.."
 
     -- Resize the window
-    (EventFramebufferSize _ width height) ->
+    (EventFramebufferSize _ width height) -> do
       modify $ \s -> s
         { stateWindowWidth  = width
         , stateWindowHeight = height
         }
+      resizeWindow
 
     -- Handle mouse clicks
     (EventMouseButton _ mb mbs mk) ->

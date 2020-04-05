@@ -5,8 +5,9 @@ module Client.GameScene
 
 import qualified Graphics.UI.GLFW as GLFW
 import qualified Graphics.Rendering.OpenGL as GL
+import qualified Graphics.Rendering.OpenGL.GL.CoordTrans as GL
 import Graphics.Rendering.OpenGL (($=))
-import Control.Monad (when, unless, void)
+--import Control.Monad (when, unless, void)
 import Control.Monad.RWS.Strict
 import Control.Concurrent.MVar
 import Data.Maybe (catMaybes)
@@ -32,8 +33,11 @@ instance Scene GameScene where
   render      = onRender
 
 -- Describe an object to be rendered
-data Descriptor = Descriptor GL.VertexArrayObject 
-  GL.ArrayIndex GL.NumArrayIndices
+data Descriptor = Descriptor 
+  GL.VertexArrayObject 
+  GL.ArrayIndex 
+  GL.NumArrayIndices
+  GL.Program
 
 -- Easily create a blank gamescene
 createGameScene :: App GameScene
@@ -44,14 +48,11 @@ createGameScene = do
   GL.bindVertexArrayObject $= Just vao
 
   -- Define triangles
-  let vertices :: [GL.Vertex2 GL.GLfloat]
+  let vertices :: [GL.Vertex3 GL.GLfloat]
       vertices = [
-        GL.Vertex2 (-0.90) (-0.90),  -- Triangle 1
-        GL.Vertex2   0.85  (-0.90),
-        GL.Vertex2 (-0.90)   0.85 ,
-        GL.Vertex2   0.90  (-0.85),  -- Triangle 2
-        GL.Vertex2   0.90    0.90 ,
-        GL.Vertex2 (-0.85)   0.90 ]
+        GL.Vertex3 (-0.5) (-0.5) 0,  -- Triangle 1
+        GL.Vertex3 0.5 (-0.5) 0,
+        GL.Vertex3 0 0.5 0]
       numVertices = length vertices
 
   -- Generate and bind VBO
@@ -67,20 +68,22 @@ createGameScene = do
   program <- liftIO $ loadShaders [
      ShaderInfo GL.VertexShader (FileSource "assets/shaders/shader.vert"),
      ShaderInfo GL.FragmentShader (FileSource "assets/shaders/shader.frag")]
+
+  -- Specify what shader program to use
   GL.currentProgram GL.$= Just program
 
   -- Specify and enable location attribute
   let firstIndex = 0
       vPosition = GL.AttribLocation 0
   GL.vertexAttribPointer vPosition $=
-    (GL.ToFloat, GL.VertexArrayDescriptor 2 GL.Float 0 
+    (GL.ToFloat, GL.VertexArrayDescriptor 3 GL.Float 0 
       (bufferOffset firstIndex))
   GL.vertexAttribArray vPosition $= GL.Enabled
 
   -- Store information about how to render the vertices
   descriptor <- liftIO newEmptyMVar
   liftIO $ putMVar descriptor $ 
-    Descriptor vao firstIndex (fromIntegral numVertices)
+    Descriptor vao firstIndex (fromIntegral numVertices) program
 
   -- Create a GameScene with this information
   pure $ GameScene descriptor
@@ -99,10 +102,40 @@ onUpdate scene dt = pure ()
 -- Display the scene
 onRender :: GameScene -> App ()
 onRender (GameScene mvar) = liftIO $ do
-  (Descriptor vao index count) <- readMVar mvar
+
+  -- Get data to render
+  (Descriptor vao index count program) <- readMVar mvar
+
+  -- Bind shader to use
+  GL.currentProgram $= Just program
+
+  -- Bind VAO
   GL.bindVertexArrayObject $= Just vao
+
+  -- Define temporary matrix
+  let mat :: [GL.GLfloat]
+      mat =
+        [ 1, 0, 0, 0
+        , 0, 1, 0, 0
+        , 0, 0, 1, 0
+        , 0, 0, 0, 1 ]
+
+  -- Give shaders correct matrices
+  view <- GL.newMatrix GL.ColumnMajor mat :: IO (GL.GLmatrix GL.GLfloat)
+  proj <- GL.newMatrix GL.ColumnMajor mat :: IO (GL.GLmatrix GL.GLfloat)
+  viewLoc <- GL.uniformLocation program "view"
+  projLoc <- GL.uniformLocation program "projection"
+  GL.uniform viewLoc $= view
+  GL.uniform projLoc $= proj
+
+  -- Draw vertices as triangles
   GL.drawArrays GL.Triangles index count
+
+  -- Unbind VAO
   GL.bindVertexArrayObject $= Nothing
+
+  -- Unbind shader
+  GL.currentProgram $= Nothing
 
 --------------------------------------------------------------------------------
 
