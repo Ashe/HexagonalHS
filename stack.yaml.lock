@@ -3,7 +3,18 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    name: linear-opengl
+    version: 0.3.0.0
+    git: https://github.com/bgamari/linear-opengl.git
+    pantry-tree:
+      size: 294
+      sha256: 4324cca41c2515b735f2877dba85556d22b5d1e52de592a28bc78258a385891b
+    commit: 5aeb5f68f03f616913344fdafa4c1f06d6814d0a
+  original:
+    git: https://github.com/bgamari/linear-opengl.git
+    commit: 5aeb5f68f03f616913344fdafa4c1f06d6814d0a
 snapshots:
 - completed:
     size: 524996

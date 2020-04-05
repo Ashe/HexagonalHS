@@ -20,7 +20,12 @@ library
                         , bindings-GLFW
                         , GLFW-b
                         , OpenGL
+                        , OpenGLRaw
+                        , linear
+                        , linear-opengl
+                        , distributive
                         , bytestring
+                        , lens
                         , stm
                         , mtl
   other-modules:          Client.App

@@ -8,6 +8,10 @@ import qualified Graphics.Rendering.OpenGL as GL
 import qualified Graphics.Rendering.OpenGL.GL.CoordTrans as GL
 import Graphics.Rendering.OpenGL (($=))
 --import Control.Monad (when, unless, void)
+import Linear.V3
+import Linear.OpenGL
+import Linear.Matrix
+import Linear.Projection
 import Control.Monad.RWS.Strict
 import Control.Concurrent.MVar
 import Data.Maybe (catMaybes)
@@ -51,8 +55,8 @@ createGameScene = do
   let vertices :: [GL.Vertex3 GL.GLfloat]
       vertices = [
         GL.Vertex3 (-0.5) (-0.5) 0,  -- Triangle 1
-        GL.Vertex3 0.5 (-0.5) 0,
-        GL.Vertex3 0 0.5 0]
+        GL.Vertex3 0 0.5 0,
+        GL.Vertex3 0.5 (-0.5) 0]
       numVertices = length vertices
 
   -- Generate and bind VBO
@@ -112,17 +116,12 @@ onRender (GameScene mvar) = liftIO $ do
   -- Bind VAO
   GL.bindVertexArrayObject $= Just vao
 
-  -- Define temporary matrix
-  let mat :: [GL.GLfloat]
-      mat =
-        [ 1, 0, 0, 0
-        , 0, 1, 0, 0
-        , 0, 0, 1, 0
-        , 0, 0, 0, 1 ]
+  -- Construct view and projection matrices for the shaders
+  let pos = V3 1 0 (-1)
+      view = lookAt pos (V3 0 0 0) (V3 0 1 0) :: M44 Float
+      proj = perspective 1.5 (1920.0 / 1080.0) 0.1 100 :: M44 Float
 
   -- Give shaders correct matrices
-  view <- GL.newMatrix GL.ColumnMajor mat :: IO (GL.GLmatrix GL.GLfloat)
-  proj <- GL.newMatrix GL.ColumnMajor mat :: IO (GL.GLmatrix GL.GLfloat)
   viewLoc <- GL.uniformLocation program "view"
   projLoc <- GL.uniformLocation program "projection"
   GL.uniform viewLoc $= view
