@@ -52,15 +52,14 @@ setupOpenGL = do
 -- Setup and play the game
 startGame :: Env -> State -> IO ()
 startGame env state = void $ evalRWST beginLoop env state
-  where scene = GameScene
-        beginLoop = do
+  where beginLoop = do
           now <- liftIO getNow
-          begin scene 
-          game scene now
+          scene <- createGameScene
+          run scene now
 
 -- Define main game loop
-game :: Scene s => s -> Double -> App ()
-game !scene !ticks = do
+run :: Scene s => s -> Double -> App ()
+run !scene !ticks = do
 
   -- Retrieve the window
   win <- asks envWindow
@@ -74,7 +73,7 @@ game !scene !ticks = do
   processEvents scene
 
   -- Update the scene
-  updatedScene <- update scene dt
+  update scene dt
 
   -- Render the game
   liftIO $ GL.clear [GL.ColorBuffer, GL.DepthBuffer]
@@ -87,7 +86,7 @@ game !scene !ticks = do
 
   -- Proceed to the next game frame unless quitting
   shouldQuit <- liftIO $ GLFW.windowShouldClose win
-  unless shouldQuit $ game updatedScene now
+  unless shouldQuit $ run scene now
 
 --------------------------------------------------------------------------------
 

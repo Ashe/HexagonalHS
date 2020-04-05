@@ -35,14 +35,11 @@ data State = State
 -- Something that can run in the app
 class Scene s where
 
-  -- Initialise the scene before play
-  begin       :: s -> App ()
-
   -- Respond to keypresses
   handleEvent :: s -> Event -> App ()
 
   -- Update the scene every frame
-  update      :: s -> Double -> App s
+  update      :: s -> Double -> App ()
 
   -- Render the scene every frame
   render      :: s -> App ()
