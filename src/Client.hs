@@ -61,7 +61,8 @@ game scene = do
   win <- asks envWindow
 
   -- Poll and process events
-  handleEvents scene
+  liftIO GLFW.pollEvents
+  processEvents scene
 
   -- Update the scene
   update scene 0.0
@@ -82,13 +83,64 @@ game scene = do
 --------------------------------------------------------------------------------
 
 -- Respond to user input and window events
-handleEvents :: Scene s => s -> App ()
-handleEvents scene = do
-  liftIO GLFW.pollEvents
+processEvents :: Scene s => s -> App ()
+processEvents scene = do
   queue <- asks envEventsChan
   maybeEvents <- liftIO $ atomically $ tryReadTQueue queue
   case maybeEvents of
     Just event -> do
-      handleEvent scene event
-      handleEvents scene
+      processEvent scene event
+      processEvents scene
     Nothing -> pure ()
+
+-- Process the event and then give it to the scene for processing
+processEvent :: Scene s => s -> Event -> App ()
+processEvent scene ev = do
+  case ev of
+
+    -- Report errors and close the window
+    (EventError e s) -> do
+      liftIO $ putStrLn $ "[Error] " ++ show e ++ ", " ++ show s
+      win <- asks envWindow
+      liftIO $ GLFW.setWindowShouldClose win True
+
+    -- Perform final actions before program terminates
+    (EventWindowClose _) -> liftIO $ putStrLn "Closing application.."
+
+    -- Resize the window
+    (EventFramebufferSize _ width height) -> do
+      modify $ \s -> s
+        { stateWindowWidth  = width
+        , stateWindowHeight = height
+        }
+      resize scene
+
+    -- Handle mouse clicks
+    (EventMouseButton _ mb mbs mk) ->
+      when (mb == GLFW.MouseButton'1) $ do
+        let pressed = mbs == GLFW.MouseButtonState'Pressed
+        modify $ \s -> s
+          { stateMouseDown = pressed
+          }
+        unless pressed $
+          modify $ \s -> s
+            { stateDragging = False
+            }
+
+    -- Handle mouse movement
+    (EventCursorPos _ x y) -> do
+        let x' = round x :: Int
+            y' = round y :: Int
+        state <- get
+        when (stateMouseDown state && not (stateDragging state)) $
+          put $ state
+            { stateDragging        = True
+            , stateDragStartX      = x
+            , stateDragStartY      = y
+            }
+
+    -- Otherwise do nothing
+    _ -> pure ()
+
+  -- Finally, pass the event to the scene
+  handleEvent scene ev
