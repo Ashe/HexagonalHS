@@ -117,12 +117,11 @@ processEvent scene ev = do
     (EventWindowClose _) -> liftIO $ putStrLn "Closing application.."
 
     -- Resize the window
-    (EventFramebufferSize _ width height) -> do
+    (EventFramebufferSize _ width height) ->
       modify $ \s -> s
         { stateWindowWidth  = width
         , stateWindowHeight = height
         }
-      resize scene
 
     -- Handle mouse clicks
     (EventMouseButton _ mb mbs mk) ->

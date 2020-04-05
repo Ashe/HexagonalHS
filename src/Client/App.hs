@@ -46,6 +46,3 @@ class Scene s where
 
   -- Render the scene every frame
   render      :: s -> App ()
-
-  -- Notify the scene of changes in window size
-  resize      :: s -> App ()

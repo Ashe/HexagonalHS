@@ -4,6 +4,7 @@ module Client.GameScene
   ) where
 
 import qualified Graphics.UI.GLFW as GLFW
+import qualified Graphics.Rendering.OpenGL as GL
 import Control.Monad (when, unless, void)
 import Control.Monad.RWS.Strict (RWST, evalRWST, liftIO, get, put, asks, modify)
 import Data.Maybe (catMaybes)
@@ -28,7 +29,3 @@ instance Scene GameScene where
 
   -- Display the scene
   render scene = pure ()
-
-  -- Resize the scene
-  resize scene =
-    liftIO $ putStrLn "resize GameScene not yet implemented"
