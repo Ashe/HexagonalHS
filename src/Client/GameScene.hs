@@ -58,9 +58,9 @@ createGameScene = do
   -- Define triangles
   let vertices :: [GL.Vertex3 GL.GLfloat]
       vertices = [
-        GL.Vertex3 (-0.5) (-0.5) 1,  -- Triangle 1
-        GL.Vertex3 0 0.5 1,
-        GL.Vertex3 0.5 (-0.5) 1]
+        GL.Vertex3 (-0.5) (-0.5) 0,  -- Triangle 1
+        GL.Vertex3 0.5 (-0.5) 0,
+        GL.Vertex3 0 0.5 0]
       numVertices = length vertices
 
   -- Generate and bind VBO
@@ -90,7 +90,7 @@ createGameScene = do
 
   -- Create a camera
   camera <- liftIO newEmptyMVar
-  let c = createCamera (V3 0 0 0) 0 90
+  let c = createCamera (V3 0 0 1) 0 270
   liftIO $ putMVar camera c
 
   -- Store information about how to render the vertices
@@ -129,7 +129,7 @@ onRender gs = liftIO $ do
   Camera {cameraView = view} <- readMVar $ gameSceneCamera gs
 
   -- Construct view and projection matrices for the shaders
-  let proj = transpose $ perspective 1.5 (1920.0 / 1080.0) 0.5 100 :: M44 Float
+  let proj = perspective 1.5 (1920.0 / 1080.0) 0.5 100 :: M44 Float
 
   -- Give shaders correct matrices
   viewLoc <- GL.uniformLocation program "view"
