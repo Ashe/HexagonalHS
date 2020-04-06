@@ -26,9 +26,13 @@ import qualified Data.ByteString as B
 -- End Shader includes
 
 import Client.App
+import Client.Camera
 
 -- The game to play
-newtype GameScene = GameScene (MVar Descriptor)
+data GameScene = GameScene 
+  { gameSceneCamera      :: MVar Camera
+  , gameSceneDescriptor  :: MVar Descriptor
+  }
 
 -- Define how this scene is interacted with
 instance Scene GameScene where
@@ -54,9 +58,9 @@ createGameScene = do
   -- Define triangles
   let vertices :: [GL.Vertex3 GL.GLfloat]
       vertices = [
-        GL.Vertex3 (-0.5) (-0.5) 0,  -- Triangle 1
-        GL.Vertex3 0 0.5 0,
-        GL.Vertex3 0.5 (-0.5) 0]
+        GL.Vertex3 (-0.5) (-0.5) 1,  -- Triangle 1
+        GL.Vertex3 0 0.5 1,
+        GL.Vertex3 0.5 (-0.5) 1]
       numVertices = length vertices
 
   -- Generate and bind VBO
@@ -84,13 +88,18 @@ createGameScene = do
       (bufferOffset firstIndex))
   GL.vertexAttribArray vPosition $= GL.Enabled
 
+  -- Create a camera
+  camera <- liftIO newEmptyMVar
+  let c = createCamera (V3 0 0 0) 0 90
+  liftIO $ putMVar camera c
+
   -- Store information about how to render the vertices
   descriptor <- liftIO newEmptyMVar
   liftIO $ putMVar descriptor $ 
     Descriptor vao firstIndex (fromIntegral numVertices) program
 
   -- Create a GameScene with this information
-  pure $ GameScene descriptor
+  pure $ GameScene camera descriptor
 
 --------------------------------------------------------------------------------
 
@@ -105,10 +114,10 @@ onUpdate scene dt = pure ()
 
 -- Display the scene
 onRender :: GameScene -> App ()
-onRender (GameScene mvar) = liftIO $ do
+onRender gs = liftIO $ do
 
   -- Get data to render
-  (Descriptor vao index count program) <- readMVar mvar
+  (Descriptor vao index count program) <- readMVar $ gameSceneDescriptor gs
 
   -- Bind shader to use
   GL.currentProgram $= Just program
@@ -116,10 +125,11 @@ onRender (GameScene mvar) = liftIO $ do
   -- Bind VAO
   GL.bindVertexArrayObject $= Just vao
 
+  -- Get the view matrix from the camera
+  Camera {cameraView = view} <- readMVar $ gameSceneCamera gs
+
   -- Construct view and projection matrices for the shaders
-  let pos = V3 1 0 (-1)
-      view = lookAt pos (V3 0 0 0) (V3 0 1 0) :: M44 Float
-      proj = perspective 1.5 (1920.0 / 1080.0) 0.1 100 :: M44 Float
+  let proj = transpose $ perspective 1.5 (1920.0 / 1080.0) 0.5 100 :: M44 Float
 
   -- Give shaders correct matrices
   viewLoc <- GL.uniformLocation program "view"
