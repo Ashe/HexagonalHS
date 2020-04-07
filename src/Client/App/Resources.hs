@@ -18,21 +18,26 @@ import Data.Map.Strict
 
 import Client.App.Resources.Shader
 
+-- Simplified types
+type RInfo = (String, String)
+type RMap a = Map String (Resource a)
+type RLens a = Lens' Resources (RMap a) 
+
 -- Store a resource along with a way of loading it
 data Resource a = Resource 
   { resource        :: Maybe a
   , resourceLoader  :: IO (Maybe a)
   }
 
--- Collection of resources and method of access
-type RMap a = Map String (Resource a)
-type RKey = (String, String)
-
 -- Store resources by type and name
 newtype Resources = Resources
   { _shaders :: RMap Shader
   }
+
+-- Create lenses for each of Resources' records
 makeLenses ''Resources
+
+--------------------------------------------------------------------------------
   
 -- Load all resources recusively given a directory
 loadResourcesFrom :: FilePath -> IO (Maybe Resources)
@@ -64,35 +69,39 @@ loadAt r fp = do
 initResource :: Resources -> FilePath -> Maybe Resources
 initResource r fp = 
   case takeExtensions fp of
-    ".shader.yaml" -> Just $ over shaders (addNull temp) r
+    ".shader.yaml" -> Just $ over shaders (init $ loadShader fp) r
     _ -> Nothing
   where name = dropExtensions . takeBaseName $ fp
-        addNull f = insert name $ Resource Nothing f
+        init f = insert name $ Resource Nothing f
         temp = putStrLn "LOAD FUNCTION!" >> pure Nothing
+
+--------------------------------------------------------------------------------
 
 -- Attempts to get a shader without taking mvars, but loads if required
 getShader :: MVar Resources -> String -> IO (Maybe Shader)
-getShader mR name = tryGet mR (key "Shader") shaders
-  where key t = (t, name)
+getShader mR name = tryGet mR (info "shader") shaders
+  where info t = (t, name)
+
+--------------------------------------------------------------------------------
 
 -- Attempts to retrieve a loaded resource
-tryGet :: MVar Resources -> RKey -> Lens' Resources (RMap a) -> IO (Maybe a)
-tryGet mR key@(t, name) lens = do
+tryGet :: MVar Resources -> RInfo -> RLens a -> IO (Maybe a)
+tryGet mR info@(t, name) lens = do
   rs <- readMVar mR
   let maybeRes = Data.Map.Strict.lookup name $ view lens rs
   case maybeRes of 
     (Just (Resource r _)) -> 
       case r of
         (Just res) -> pure $ Just res
-        _ -> tryLoad mR key lens
+        _ -> tryLoad mR info lens
     _ -> do
       putStrLn $ 
         "[Error] Could not find " ++ t ++ ": '" ++ name ++ "'."
       pure Nothing
 
 -- Try and load an unloaded resource
-tryLoad :: MVar Resources -> RKey -> Lens' Resources (RMap a) -> IO (Maybe a)
-tryLoad mR key@(t, name) lens = do
+tryLoad :: MVar Resources -> RInfo -> RLens a -> IO (Maybe a)
+tryLoad mR info@(t, name) lens = do
 
   -- Declare the resource to load
   putStrLn $ "Loading " ++ t ++ ": '" ++ name ++ "'.."

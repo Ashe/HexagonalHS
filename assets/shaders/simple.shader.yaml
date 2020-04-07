@@ -1,2 +1,2 @@
-vertexShaderName: simple.vert.glsl
-fragmentShaderName: simple.frag.glsl
+vertex: simple.vertex.glsl
+fragment: simple.fragment.glsl
