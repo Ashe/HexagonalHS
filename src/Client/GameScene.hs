@@ -70,7 +70,7 @@ createGameScene = do
 
   -- Retrieve shader from resources
   Env { envResources = rs } <- ask
-  maybeShader <- liftIO $ getResource rs ShaderResource "simple"
+  maybeShader <- liftIO $ getShader rs "simple"
   when (isNothing maybeShader) $ error "Could not find shader"
   let program = shaderProgram (fromJust maybeShader)
 

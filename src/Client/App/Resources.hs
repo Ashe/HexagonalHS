@@ -1,12 +1,16 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RankNTypes #-}
+
 -- A module for loading and storing assets used in game
 module Client.App.Resources
   ( Resources
-  , ResourceType (..)
   , loadResourcesFrom
-  , getResource
+  , getShader
   ) where
 
+import Control.Lens
 import Control.Concurrent.MVar
+import Data.Proxy
 import Data.Foldable (foldlM)
 import System.Directory
 import System.FilePath
@@ -14,20 +18,21 @@ import Data.Map.Strict
 
 import Client.App.Resources.Shader
 
--- Store resources by type and name
-newtype Resources = Resources
-  { resources :: Map (ResourceType, String) (Resource Shader)
-  }
-
--- Resource types
-data ResourceType = ShaderResource
-  deriving (Eq, Ord, Read, Show)
-
 -- Store a resource along with a way of loading it
 data Resource a = Resource 
   { resource        :: Maybe a
   , resourceLoader  :: IO (Maybe a)
   }
+
+-- Collection of resources and method of access
+type RMap a = Map String (Resource a)
+type RKey = (String, String)
+
+-- Store resources by type and name
+newtype Resources = Resources
+  { _shaders :: RMap Shader
+  }
+makeLenses ''Resources
   
 -- Load all resources recusively given a directory
 loadResourcesFrom :: FilePath -> IO (Maybe Resources)
@@ -59,40 +64,44 @@ loadAt r fp = do
 initResource :: Resources -> FilePath -> Maybe Resources
 initResource r fp = 
   case takeExtensions fp of
-    ".shader.yaml" -> Just $ addTo ShaderResource temp
+    ".shader.yaml" -> Just $ over shaders (addNull temp) r
     _ -> Nothing
   where name = dropExtensions . takeBaseName $ fp
-        addTo t f = r { resources = 
-            insert (t, name) (Resource Nothing f) $ resources r}
+        addNull f = insert name $ Resource Nothing f
         temp = putStrLn "LOAD FUNCTION!" >> pure Nothing
 
 -- Attempts to get a shader without taking mvars, but loads if required
-getResource :: MVar Resources -> ResourceType -> String -> IO (Maybe Shader)
-getResource mR rType name = do
-  let key = (rType, name)
+getShader :: MVar Resources -> String -> IO (Maybe Shader)
+getShader mR name = tryGet mR (key "Shader") shaders
+  where key t = (t, name)
+
+-- Attempts to retrieve a loaded resource
+tryGet :: MVar Resources -> RKey -> Lens' Resources (RMap a) -> IO (Maybe a)
+tryGet mR key@(t, name) lens = do
   rs <- readMVar mR
-  let maybeRes = Data.Map.Strict.lookup key $ resources rs
+  let maybeRes = Data.Map.Strict.lookup name $ view lens rs
   case maybeRes of 
     (Just (Resource r _)) -> 
       case r of
         (Just res) -> pure $ Just res
-        _ -> tryLoadResource mR key
+        _ -> tryLoad mR key lens
     _ -> do
-      putStrLn $ "[Error] Could not find " ++ show rType ++ ": '" ++ name ++ "'."
+      putStrLn $ 
+        "[Error] Could not find " ++ t ++ ": '" ++ name ++ "'."
       pure Nothing
 
--- Get resource by name and load if necessary
-tryLoadResource :: MVar Resources -> (ResourceType, String) -> IO (Maybe Shader)
-tryLoadResource mR key@(t, name) = do
+-- Try and load an unloaded resource
+tryLoad :: MVar Resources -> RKey -> Lens' Resources (RMap a) -> IO (Maybe a)
+tryLoad mR key@(t, name) lens = do
 
   -- Declare the resource to load
-  putStrLn $ "Loading " ++ show t ++ ": '" ++ name ++ "'.."
+  putStrLn $ "Loading " ++ t ++ ": '" ++ name ++ "'.."
 
   -- Retrieve resources from mvar
   rs <- takeMVar mR
 
-  -- Get the element to load
-  let res@(Resource _ l) = resources rs ! key
+  -- Get the element to load and the accessor to place it
+  let res@(Resource _ l) = view lens rs ! name
 
   -- Use the loading function to try and load the resource
   maybeRes <- l
@@ -100,13 +109,12 @@ tryLoadResource mR key@(t, name) = do
 
     -- If a resource was loaded, update collection
     (Just r) -> do
-      let newRs = rs { resources = 
-        insert key res { resource = maybeRes } $ resources rs }
+      let newRs = over lens (insert name res { resource = maybeRes }) rs
       putMVar mR newRs
       pure maybeRes
 
     -- If nothing was done, do nothing
     _ -> do
-      putStrLn $ "[Error] Failed to load " ++ show t ++ ": '" ++ name ++ "'."
+      putStrLn $ "[Error] Failed to load " ++ t ++ ": '" ++ name ++ "'."
       putMVar mR rs
       pure Nothing

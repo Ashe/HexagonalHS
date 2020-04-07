@@ -29,6 +29,7 @@ library
                         , containers
                         , distributive
                         , bytestring
+                        , lens
                         , stm
                         , mtl
   other-modules:          Client.App
