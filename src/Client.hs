@@ -5,17 +5,20 @@ module Client
   ( initialise
   ) where
 
+import System.Environment (getProgName)
 import qualified Graphics.UI.GLFW as GLFW
 import qualified Graphics.Rendering.OpenGL as GL
 import Graphics.Rendering.OpenGL (($=))
 import Control.Monad (when, unless, void)
-import Control.Concurrent.STM (newTQueueIO, TQueue, atomically, writeTQueue, tryReadTQueue)
 import Control.Monad.RWS.Strict (RWST, evalRWST, liftIO, get, put, asks, modify)
 import Control.Concurrent (threadDelay)
+import Control.Concurrent.MVar (newMVar)
+import Control.Concurrent.STM (newTQueueIO, TQueue, atomically, writeTQueue, tryReadTQueue)
 import Data.Maybe (catMaybes)
 
 import Client.App
 import Client.App.Event
+import Client.App.Resources
 import Client.GameScene
 import Client.Utils
 
@@ -23,18 +26,38 @@ import Client.Utils
 initialise :: Int -> Int -> IO ()
 initialise w h = do
 
+  -- Welcome message
+  progName <- getProgName
+  putStrLn $ "\nStarting " ++ progName ++ ".."
+
   -- Create event queue
   eventsChan <- newTQueueIO :: IO (TQueue Event)
 
-  -- Specify how the game should be set up and played
-  let state = State 0 0 False False 0 0
-      play window = 
-        provideCallbacks eventsChan window
-        >> setupOpenGL
-        >> startGame (Env window eventsChan) state
+  -- Attempt to load resources
+  maybeResources <- loadResourcesFrom "assets"
+  case maybeResources of
 
-  -- Run a function in the GLFW window
-  withWindow w h "Tides of Magic" play
+    -- If resources were loaded
+    (Just rs) -> do
+
+      -- Wrap resources into mvar
+      resources <- newMVar rs
+
+      -- Specify how the game should be set up and played
+      let state = State 0 0 False False 0 0
+          play window = do
+            let env = Env window resources eventsChan
+            provideCallbacks eventsChan window
+            setupOpenGL
+            startGame env state
+
+      -- Run a function in the GLFW window
+      withWindow w h "Tides of Magic" play
+
+    -- If resources fail to load, don't initialise window
+    _ -> do
+      putStrLn "[Error] Resources could not be loaded."
+      pure ()
 
 -- Setup OpenGL
 setupOpenGL :: IO ()

@@ -10,7 +10,9 @@ module Client.App
 import qualified Graphics.UI.GLFW as GLFW
 import Control.Monad.RWS.Strict (RWST)
 import Control.Concurrent.STM (TQueue)
+import Control.Concurrent.MVar (MVar)
 
+import Client.App.Resources
 import Client.App.Event
 
 -- Contains information about the game
@@ -19,6 +21,7 @@ type App = RWST Env [Int] State IO
 -- Read-only environment data
 data Env = Env
   { envWindow         :: !GLFW.Window
+  , envResources      :: MVar Resources
   , envEventsChan     :: TQueue Event
   }
 

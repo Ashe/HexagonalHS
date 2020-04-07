@@ -21,15 +21,20 @@ library
                         , GLFW-b
                         , OpenGL
                         , OpenGLRaw
+                        , filepath
+                        , yaml
                         , linear
                         , linear-opengl
+                        , directory
+                        , containers
                         , distributive
                         , bytestring
-                        , lens
                         , stm
                         , mtl
   other-modules:          Client.App
                         , Client.App.Event
+                        , Client.App.Resources
+                        , Client.App.Resources.Shader
                         , Client.Utils
                         , Client.GameScene
                         , Client.Camera
