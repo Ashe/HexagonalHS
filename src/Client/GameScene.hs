@@ -8,6 +8,7 @@ import qualified Graphics.Rendering.OpenGL as GL
 import qualified Graphics.Rendering.OpenGL.GL.CoordTrans as GL
 import Graphics.Rendering.OpenGL (($=))
 import Control.Monad (when, unless, void)
+import GHC.Float (double2Float)
 import Linear.V3
 import Linear.OpenGL
 import Linear.Matrix
@@ -107,7 +108,43 @@ onHandleEvent _ _ = pure ()
 
 -- Update entities in the scene
 onUpdate :: GameScene -> Double -> App ()
-onUpdate scene dt = pure ()
+onUpdate scene dt = do
+
+  -- Retrieve the window
+  Env{envWindow = window} <- ask
+
+  -- Retrieve the camera from the GameScene
+  camera <- liftIO $ takeMVar $ gameSceneCamera scene
+
+  -- Prepare to move the camera
+  let keybindings :: [(GLFW.Key, V3 Float)]
+      keybindings = 
+        [ (GLFW.Key'W, cameraForward camera)
+        , (GLFW.Key'A, - cameraRight camera)
+        , (GLFW.Key'S, - cameraForward camera)
+        , (GLFW.Key'D, cameraRight camera)
+        , (GLFW.Key'Space, V3 0 1 0)
+        , (GLFW.Key'C, V3 0 (-1) 0) ]
+      move :: (GLFW.Key, V3 Float) -> IO (V3 Float)
+      move (k, d) = do
+        status <- GLFW.getKey window k
+        pure $ case status of
+          GLFW.KeyState'Pressed -> d
+          _ -> V3 0 0 0
+      calcMove :: IO (V3 Float)
+      calcMove = foldM (\n m -> (+n) <$> move m) (V3 0 0 0) keybindings
+
+  -- Move the camera
+  movement <- liftIO calcMove
+  let speed :: Float
+      speed = 10.0 * double2Float dt
+      destination = cameraPosition camera + ((* speed) <$> movement)
+      pitch = cameraPitch camera
+      yaw = cameraYaw camera
+      newCamera = createCamera destination pitch yaw
+
+  -- Replace the old camera with the new one
+  liftIO $ putMVar (gameSceneCamera scene) newCamera
 
 -- Display the scene
 onRender :: GameScene -> App ()

@@ -19,7 +19,7 @@ data Camera = Camera
   , cameraView      :: M44 Float
   } deriving (Eq, Show)
 
--- Update the camera after changing position and angles
+-- Create a camera with given position, pitch and yaw values
 createCamera :: V3 Float -> Float -> Float -> Camera
 createCamera pos pitch yaw = Camera pos forward right pitch yaw view
   where forward = calculateForward (radians pitch) (radians yaw)
