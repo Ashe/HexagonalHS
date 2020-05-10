@@ -2,6 +2,7 @@
 module Client.Camera
   ( Camera (..)
   , createCamera
+  , getProjectionMatrix
   ) where
 
 import Linear.V3
@@ -41,6 +42,10 @@ calculateRight forward = normalize $ cross forward $ V3 0 1 0
 calculateViewMatrix :: V3 Float -> V3 Float -> M44 Float
 calculateViewMatrix pos forward = lookAt pos target $ V3 0 1 0
   where target = pos + forward
+
+-- Get projection matrix
+getProjectionMatrix :: M44 Float
+getProjectionMatrix = perspective 1.5 (1920.0 / 1080.0) 0.5 100
 
 -- Convert an angle from degrees to radians
 radians :: Float -> Float

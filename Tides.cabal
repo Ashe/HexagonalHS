@@ -34,9 +34,11 @@ library
                         , mtl
   other-modules:          Client.App
                         , Client.App.Event
+                        , Client.App.Uniform
                         , Client.App.Resources
                         , Client.App.Resources.Shader
                         , Client.Utils
+                        , Client.Rendering.Mesh
                         , Client.GameScene
                         , Client.Camera
 

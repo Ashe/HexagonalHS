@@ -54,7 +54,8 @@ initialise w h = do
             , stateDeltaTimeScale = 1.0
             , stateMousePos = V2 0 0
             , stateDeltaMousePos = V2 0.0 0.0
-            , stateMouseDrag = empty }
+            , stateMouseDrag = empty
+            , stateGlobalUniforms = empty }
           play window = do
             let env = Env window resources eventsChan
             provideCallbacks eventsChan window
@@ -144,10 +145,10 @@ run !scene = do
 -- Resize the window and reposition camera
 resizeWindow :: App ()
 resizeWindow = do
-    s <- get
-    let pos   = GL.Position 0 0
-        size  = let (V2 w h) = fromIntegral <$> stateWindowSize s in GL.Size w h
-    liftIO $ GL.viewport $= (pos, size)
+  s <- get
+  let pos   = GL.Position 0 0
+      size  = let (V2 w h) = fromIntegral <$> stateWindowSize s in GL.Size w h
+  liftIO $ GL.viewport $= (pos, size)
 
 --------------------------------------------------------------------------------
 

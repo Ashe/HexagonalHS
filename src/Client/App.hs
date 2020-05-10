@@ -16,6 +16,7 @@ import Linear.V2
 
 import Client.App.Resources
 import Client.App.Event
+import Client.App.Uniform
 
 -- Contains information about the game
 type App = RWST Env [Int] State IO
@@ -37,6 +38,7 @@ data State = State
   , stateMousePos         :: V2 Double
   , stateDeltaMousePos    :: V2 Double
   , stateMouseDrag        :: Map GLFW.MouseButton (V2 Double)
+  , stateGlobalUniforms   :: Map String Uniform
   }
 
 -- Something that can run in the app
