@@ -15,6 +15,8 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.MVar (newMVar)
 import Control.Concurrent.STM (newTQueueIO, TQueue, atomically, writeTQueue, tryReadTQueue)
 import Data.Maybe (catMaybes)
+import Data.Map.Strict (insert, empty)
+import Linear.V2
 
 import Client.App
 import Client.App.Event
@@ -44,12 +46,21 @@ initialise w h = do
       resources <- newMVar rs
 
       -- Specify how the game should be set up and played
-      let state = State 0 0 False False 0 0
+      let state time = State 
+            { stateWindowSize = V2 0 0
+            , stateTime = time
+            , stateDeltaTime = 0.0
+            , stateDeltaTimeRaw = 0.0
+            , stateDeltaTimeScale = 1.0
+            , stateMousePos = V2 0 0
+            , stateDeltaMousePos = V2 0.0 0.0
+            , stateMouseDrag = empty }
           play window = do
             let env = Env window resources eventsChan
             provideCallbacks eventsChan window
             setupOpenGL
-            startGame env state
+            now <- getNow
+            startGame env $ state now
 
       -- Run a function in the GLFW window
       withWindow w h "Tides of Magic" play
@@ -76,28 +87,44 @@ setupOpenGL = do
 startGame :: Env -> State -> IO ()
 startGame env state = void $ evalRWST beginLoop env state
   where beginLoop = do
-          now <- liftIO getNow
           scene <- createGameScene
           resizeWindow
-          run scene now
+          run scene
 
 -- Define main game loop
-run :: Scene s => s -> Double -> App ()
-run !scene !ticks = do
+run :: Scene s => s -> App ()
+run !scene = do
 
-  -- Retrieve the window
+  -- Retrieve the window from environment
   win <- asks envWindow
+
+  -- Retrieve state
+  state <- get
 
   -- Calculate delta time
   now <- liftIO getNow
-  let dt = now - ticks
+  let dt = now - stateTime state
+      scaledDt = dt * stateDeltaTimeScale state
 
   -- Poll and process events
   liftIO GLFW.pollEvents
   processEvents scene
 
+  -- Calculate current mouse position and delta
+  mousePos <- liftIO $ (\(x, y) -> V2 x y) <$> GLFW.getCursorPos win
+  let mouseDelta = mousePos - stateMousePos state
+
+  -- Update state with delta-frame information
+  put $ state
+    { stateTime           = now
+    , stateDeltaTime      = scaledDt
+    , stateDeltaTimeRaw   = dt
+    , stateMousePos       = mousePos
+    , stateDeltaMousePos  = mouseDelta
+    }
+
   -- Update the scene
-  update scene dt
+  update scene scaledDt
 
   -- Render the game
   liftIO $ GL.clear [GL.ColorBuffer, GL.DepthBuffer]
@@ -110,18 +137,16 @@ run !scene !ticks = do
 
   -- Proceed to the next game frame unless quitting
   shouldQuit <- liftIO $ GLFW.windowShouldClose win
-  unless shouldQuit $ run scene now
+  unless shouldQuit $ run scene
 
 --------------------------------------------------------------------------------
 
 -- Resize the window and reposition camera
 resizeWindow :: App ()
 resizeWindow = do
-    state <- get
-    let width  = stateWindowWidth  state
-        height = stateWindowHeight state
-        pos   = GL.Position 0 0
-        size  = GL.Size (fromIntegral width) (fromIntegral height)
+    s <- get
+    let pos   = GL.Position 0 0
+        size  = let (V2 w h) = fromIntegral <$> stateWindowSize s in GL.Size w h
     liftIO $ GL.viewport $= (pos, size)
 
 --------------------------------------------------------------------------------
@@ -151,37 +176,17 @@ processEvent scene ev = do
     -- Perform final actions before program terminates
     (EventWindowClose _) -> liftIO $ putStrLn "Closing application.."
 
-    -- Resize the window
+    -- Handle window resizing
     (EventFramebufferSize _ width height) -> do
       modify $ \s -> s
-        { stateWindowWidth  = width
-        , stateWindowHeight = height
-        }
+        { stateWindowSize = V2 width height }
       resizeWindow
 
-    -- Handle mouse clicks
+    -- Handle mouse buttons
     (EventMouseButton _ mb mbs mk) ->
-      when (mb == GLFW.MouseButton'1) $ do
-        let pressed = mbs == GLFW.MouseButtonState'Pressed
+      when (mbs == GLFW.MouseButtonState'Pressed) $
         modify $ \s -> s
-          { stateMouseDown = pressed
-          }
-        unless pressed $
-          modify $ \s -> s
-            { stateDragging = False
-            }
-
-    -- Handle mouse movement
-    (EventCursorPos _ x y) -> do
-        let x' = round x :: Int
-            y' = round y :: Int
-        state <- get
-        when (stateMouseDown state && not (stateDragging state)) $
-          put $ state
-            { stateDragging        = True
-            , stateDragStartX      = x
-            , stateDragStartY      = y
-            }
+          { stateMouseDrag = insert mb (stateMousePos s) (stateMouseDrag s) }
 
     -- Otherwise do nothing
     _ -> pure ()

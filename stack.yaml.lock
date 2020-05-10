@@ -15,6 +15,28 @@ packages:
   original:
     git: https://github.com/bgamari/linear-opengl.git
     commit: 5aeb5f68f03f616913344fdafa4c1f06d6814d0a
+- completed:
+    name: bindings-GLFW
+    version: 3.3.2.0
+    git: https://github.com/bsl/bindings-GLFW.git
+    pantry-tree:
+      size: 5582
+      sha256: 743862b3ac07b1614f564acefc5b900351b0befa6447839332f687ad9be0fd4b
+    commit: 5ba55775e9e055ad69ed3925559b2d38a7c51265
+  original:
+    git: https://github.com/bsl/bindings-GLFW.git
+    commit: 5ba55775e9e055ad69ed3925559b2d38a7c51265
+- completed:
+    name: GLFW-b
+    version: 3.3.0.0
+    git: https://github.com/bsl/GLFW-b.git
+    pantry-tree:
+      size: 691
+      sha256: af7e9063419f038b21a598f66b4388d6a195f3c2d26edb226868131f89729dfb
+    commit: f1026edc6dbd53291836154097f7b50616fef98e
+  original:
+    git: https://github.com/bsl/GLFW-b.git
+    commit: f1026edc6dbd53291836154097f7b50616fef98e
 snapshots:
 - completed:
     size: 524996

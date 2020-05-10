@@ -9,6 +9,7 @@ import qualified Graphics.Rendering.OpenGL.GL.CoordTrans as GL
 import Graphics.Rendering.OpenGL (($=))
 import Control.Monad (when, unless, void)
 import GHC.Float (double2Float)
+import Linear.V2
 import Linear.V3
 import Linear.OpenGL
 import Linear.Matrix
@@ -116,8 +117,28 @@ onUpdate scene dt = do
   -- Retrieve the camera from the GameScene
   camera <- liftIO $ takeMVar $ gameSceneCamera scene
 
-  -- Prepare to move the camera
-  let keybindings :: [(GLFW.Key, V3 Float)]
+  -- Retrieve the App State and mouse position
+  st <- get
+  mousePos <- liftIO $ GLFW.getCursorPos window
+  mouseStatus <- liftIO $ GLFW.getMouseButton window GLFW.MouseButton'2
+
+  -- Disable the cursor when looking around
+  liftIO $ GLFW.setCursorInputMode window $
+    case mouseStatus of
+      GLFW.MouseButtonState'Pressed -> GLFW.CursorInputMode'Disabled
+      _ -> GLFW.CursorInputMode'Normal
+
+  -- Turn camera on left click
+  let sensitivity = 0.1
+      (V2 x y) = (* sensitivity) . double2Float <$> stateDeltaMousePos st
+      previousAngle@(pitch, yaw) = (cameraPitch camera, cameraYaw camera)
+      (pitch', yaw') = case mouseStatus of
+        GLFW.MouseButtonState'Pressed ->
+            (min 79.0 (max (-79.0) (pitch - y)), yaw + x)
+        _ -> previousAngle
+
+      -- Set up camera keybindings
+      keybindings :: [(GLFW.Key, V3 Float)]
       keybindings = 
         [ (GLFW.Key'W, cameraForward camera)
         , (GLFW.Key'A, - cameraRight camera)
@@ -125,23 +146,25 @@ onUpdate scene dt = do
         , (GLFW.Key'D, cameraRight camera)
         , (GLFW.Key'Space, V3 0 1 0)
         , (GLFW.Key'C, V3 0 (-1) 0) ]
+
+      -- Prepare to move the camera
       move :: (GLFW.Key, V3 Float) -> IO (V3 Float)
       move (k, d) = do
         status <- GLFW.getKey window k
         pure $ case status of
           GLFW.KeyState'Pressed -> d
           _ -> V3 0 0 0
+
+      -- Move the camera depending on keys pressed
       calcMove :: IO (V3 Float)
       calcMove = foldM (\n m -> (+n) <$> move m) (V3 0 0 0) keybindings
 
-  -- Move the camera
+  -- Update the camera
   movement <- liftIO calcMove
   let speed :: Float
-      speed = 10.0 * double2Float dt
+      speed = 2.0 * double2Float dt
       destination = cameraPosition camera + ((* speed) <$> movement)
-      pitch = cameraPitch camera
-      yaw = cameraYaw camera
-      newCamera = createCamera destination pitch yaw
+      newCamera = createCamera destination pitch' yaw'
 
   -- Replace the old camera with the new one
   liftIO $ putMVar (gameSceneCamera scene) newCamera

@@ -41,9 +41,12 @@ packages:
 extra-deps: 
   - git: https://github.com/bgamari/linear-opengl.git
     commit: 5aeb5f68f03f616913344fdafa4c1f06d6814d0a
+  - git: https://github.com/bsl/bindings-GLFW.git
+    commit: 5ba55775e9e055ad69ed3925559b2d38a7c51265
+  - git: https://github.com/bsl/GLFW-b.git
+    commit: f1026edc6dbd53291836154097f7b50616fef98e
   
 # Linear-opengl is out of date so this option was required
-allow-newer: true
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

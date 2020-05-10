@@ -11,6 +11,8 @@ import qualified Graphics.UI.GLFW as GLFW
 import Control.Monad.RWS.Strict (RWST)
 import Control.Concurrent.STM (TQueue)
 import Control.Concurrent.MVar (MVar)
+import Data.Map.Strict
+import Linear.V2
 
 import Client.App.Resources
 import Client.App.Event
@@ -20,19 +22,21 @@ type App = RWST Env [Int] State IO
 
 -- Read-only environment data
 data Env = Env
-  { envWindow         :: !GLFW.Window
-  , envResources      :: MVar Resources
-  , envEventsChan     :: TQueue Event
+  { envWindow             :: !GLFW.Window
+  , envResources          :: MVar Resources
+  , envEventsChan         :: TQueue Event
   }
 
 -- Data to be modified in game
 data State = State 
-  { stateWindowWidth  :: Int
-  , stateWindowHeight :: Int
-  , stateMouseDown    :: Bool
-  , stateDragging     :: Bool
-  , stateDragStartX   :: Double
-  , stateDragStartY   :: Double
+  { stateWindowSize       :: V2 Int
+  , stateTime             :: Double
+  , stateDeltaTime        :: Double
+  , stateDeltaTimeRaw     :: Double
+  , stateDeltaTimeScale   :: Double
+  , stateMousePos         :: V2 Double
+  , stateDeltaMousePos    :: V2 Double
+  , stateMouseDrag        :: Map GLFW.MouseButton (V2 Double)
   }
 
 -- Something that can run in the app
