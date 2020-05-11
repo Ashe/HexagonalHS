@@ -5,6 +5,7 @@ module Client.Rendering.Mesh
   ( Mesh (..)
   , createMesh
   , renderMesh
+  , hexagon
   ) where
 
 import qualified Graphics.Rendering.OpenGL as GL
@@ -13,6 +14,7 @@ import Graphics.Rendering.OpenGL (($=))
 import Control.Monad.RWS.Strict
 import Data.Map.Strict (elems)
 import Data.Word (Word32)
+import Linear.V2
 import Linear.V3
 import Linear.Affine
 import Foreign.Marshal.Array
@@ -35,7 +37,7 @@ data Mesh = Mesh
 
 --------------------------------------------------------------------------------
 
--- Easily create a mesh
+-- Create a mesh with vertices, indices, uniforms and a shader
 createMesh :: [Point V3 Float] -> [Word32] -> GL.Program -> [Uniform] -> App Mesh
 createMesh vertices indices program uniforms = do
 
@@ -79,7 +81,7 @@ createMesh vertices indices program uniforms = do
     , meshEBO = ebo
     , meshShader = program
     , meshFirstIndex = 0
-    , meshNumIndices = fromIntegral $ length vertices
+    , meshNumIndices = fromIntegral $ length indices
     , meshUniforms = uniforms
     }
 
@@ -126,3 +128,20 @@ applyUniforms program uniforms = liftIO $ mapM_ f uniforms
 -- Creates a pointer to data
 bufferOffset :: Integral a => a -> Ptr b
 bufferOffset = plusPtr nullPtr . fromIntegral
+
+--------------------------------------------------------------------------------
+
+-- Hard coded hexagon size
+hexagonSize :: Float
+hexagonSize = 1
+
+-- Create a hexagon centered at (0, 0)
+hexagon :: ([Point V2 Float], [Word32])
+hexagon = (vertices, indices)
+  where center = P $ V2 0 0
+        toRad a = (pi / 180.0) * a
+        calcX angle = hexagonSize * cos(angle)
+        calcY angle = hexagonSize * sin(angle)
+        angles = (\a -> toRad (60 * a - 30)) <$> [0..5]
+        vertices = [center] ++ [P (V2 (calcX a) (calcY a)) | a <- angles]
+        indices = concat [[0, i + 1, i] | i <- [1..5]] ++ [0, 1, 6]
