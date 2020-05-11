@@ -50,8 +50,9 @@ createGameScene = do
   GL.bindVertexArrayObject $= Just vao
 
   -- Draw a hexagon
-  let (vertices, indices) = hexagon
-      vertices' = fmap (\(P (V2 x y)) -> P $ V3 x 1 y) vertices
+  let (vertices, indices) = hexagonalPrism 0.25
+
+  liftIO $ mapM print indices
 
   -- Retrieve shader from resources
   Env { envResources = rs } <- ask
@@ -61,12 +62,12 @@ createGameScene = do
 
   -- Create a camera
   camera <- liftIO newEmptyMVar
-  let c = createCamera (V3 0 3 2) (-30) 270
+  let c = createCamera (V3 0 2 2) (-30) 270
   liftIO $ putMVar camera c
 
   -- Store information about how to render the vertices
   mesh <- liftIO newEmptyMVar
-  createMesh vertices' indices program [] >>= liftIO . putMVar mesh
+  createMesh vertices indices program [] >>= liftIO . putMVar mesh
 
   -- Create a GameScene with this information
   pure $ GameScene camera mesh
