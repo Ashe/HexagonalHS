@@ -12,6 +12,7 @@ import qualified Graphics.Rendering.OpenGL.GL.Shaders.Uniform as GL
 import Graphics.Rendering.OpenGL (($=))
 import Control.Monad.RWS.Strict
 import Data.Map.Strict (elems)
+import Data.Word (Word32)
 import Linear.V3
 import Linear.Affine
 import Foreign.Marshal.Array
@@ -25,17 +26,18 @@ import Client.App.Uniform
 data Mesh = Mesh
   { meshVAO         :: GL.VertexArrayObject 
   , meshVBO         :: GL.BufferObject
+  , meshEBO         :: GL.BufferObject
   , meshShader      :: GL.Program
   , meshFirstIndex  :: GL.ArrayIndex 
-  , meshNumVertices :: GL.NumArrayIndices
+  , meshNumIndices  :: GL.NumArrayIndices
   , meshUniforms    :: [Uniform]
   }
 
 --------------------------------------------------------------------------------
 
 -- Easily create a mesh
-createMesh :: [Point V3 Float] -> GL.Program -> [Uniform] -> App Mesh
-createMesh vertices program uniforms = do
+createMesh :: [Point V3 Float] -> [Word32] -> GL.Program -> [Uniform] -> App Mesh
+createMesh vertices indices program uniforms = do
 
   -- Generate and bind VAO
   vao <- liftIO GL.genObjectName
@@ -45,10 +47,19 @@ createMesh vertices program uniforms = do
   vbo <- liftIO GL.genObjectName
   GL.bindBuffer GL.ArrayBuffer $= Just vbo
 
+  -- Generate and bind EBO
+  ebo <- liftIO GL.genObjectName
+  GL.bindBuffer GL.ElementArrayBuffer $= Just ebo
+
   -- Load vertex data into buffer
-  liftIO $ withArray vertices $ \ptr -> do
-    let size = fromIntegral (length vertices * sizeOf (head vertices))
-    GL.bufferData GL.ArrayBuffer $= (size, ptr, GL.StaticDraw)
+  let vSize = fromIntegral (length vertices * sizeOf (head vertices))
+  liftIO $ withArray vertices $ \ptr ->
+    GL.bufferData GL.ArrayBuffer $= (vSize, ptr, GL.StaticDraw)
+
+  -- Load index data into buffer
+  let iSize = fromIntegral (length indices * sizeOf (head indices))
+  liftIO $ withArray indices $ \ptr ->
+    GL.bufferData GL.ElementArrayBuffer $= (iSize, ptr, GL.StaticDraw)
 
   -- Specify what shader program to use
   GL.currentProgram GL.$= Just program
@@ -65,9 +76,10 @@ createMesh vertices program uniforms = do
   pure $ Mesh
     { meshVAO = vao
     , meshVBO = vbo
+    , meshEBO = ebo
     , meshShader = program
     , meshFirstIndex = 0
-    , meshNumVertices = fromIntegral $ length vertices
+    , meshNumIndices = fromIntegral $ length vertices
     , meshUniforms = uniforms
     }
 
@@ -80,8 +92,8 @@ renderMesh mesh uniforms = do
 
   -- Retrieve data from mesh and state
   let program = meshShader mesh
-      count = meshNumVertices mesh
-      firstIndex = meshFirstIndex mesh
+      count = meshNumIndices mesh
+      offset = bufferOffset $ meshFirstIndex mesh
       meshUnis = meshUniforms mesh
       globalUnis = elems $ stateGlobalUniforms state
 
@@ -96,7 +108,7 @@ renderMesh mesh uniforms = do
   applyUniforms program $ globalUnis ++ meshUnis ++ uniforms
 
   -- Draw vertices as triangles
-  liftIO $ GL.drawArrays GL.Triangles firstIndex count
+  liftIO $ GL.drawElements GL.Triangles count GL.UnsignedInt offset
 
   -- Unbind VAO
   GL.bindVertexArrayObject $= Nothing

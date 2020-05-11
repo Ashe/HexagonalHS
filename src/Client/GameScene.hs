@@ -19,6 +19,7 @@ import Control.Monad.RWS.Strict
 import Control.Concurrent.MVar
 import Data.Maybe (isNothing, fromJust, catMaybes)
 import Data.Map.Strict (insert)
+import Data.Word (Word32)
 import Foreign.Marshal.Array
 import Foreign.Ptr
 import Foreign.Storable
@@ -52,11 +53,13 @@ createGameScene = do
 
   -- Define triangles
   let vertices :: [Point V3 Float]
-      vertices = [
-        P (V3 (-0.5) (-0.5) 0),
-        P (V3 0.5 (-0.5) 0),
-        P (V3 0 0.5 0) ]
-      numVertices = length vertices
+      vertices = P <$> [
+        V3 (-1) (-1) 0,
+        V3 1 (-1) 0,
+        V3 0 1 0 ]
+      indices :: [Word32]
+      indices = [0, 1, 2]
+      numVertices = length indices
 
   -- Retrieve shader from resources
   Env { envResources = rs } <- ask
@@ -66,12 +69,12 @@ createGameScene = do
 
   -- Create a camera
   camera <- liftIO newEmptyMVar
-  let c = createCamera (V3 0 0 1) 0 270
+  let c = createCamera (V3 0 0 2) 0 270
   liftIO $ putMVar camera c
 
   -- Store information about how to render the vertices
   mesh <- liftIO newEmptyMVar
-  createMesh vertices program [] >>= (\m -> liftIO $ putMVar mesh m)
+  createMesh vertices indices program [] >>= liftIO . putMVar mesh
 
   -- Create a GameScene with this information
   pure $ GameScene camera mesh
