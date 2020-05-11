@@ -39,6 +39,7 @@ library
                         , Client.App.Resources.Shader
                         , Client.Utils
                         , Client.Rendering.Mesh
+                        , Client.Rendering.Geometry.Hexagon
                         , Client.GameScene
                         , Client.Camera
 

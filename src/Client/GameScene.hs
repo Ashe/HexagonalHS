@@ -7,22 +7,19 @@ import qualified Graphics.UI.GLFW as GLFW
 import qualified Graphics.Rendering.OpenGL as GL
 import qualified Graphics.Rendering.OpenGL.GL.CoordTrans as GL
 import Graphics.Rendering.OpenGL (($=))
-import Control.Monad (when, unless, void)
-import GHC.Float (double2Float)
-import Linear.V2
-import Linear.V3
-import Linear.OpenGL
-import Linear.Matrix
-import Linear.Projection
-import Linear.Affine
-import Control.Monad.RWS.Strict
+import Control.Monad (foldM, when, unless, void)
+import Control.Monad.RWS.Strict (liftIO, ask, get, put)
 import Control.Concurrent.MVar
 import Data.Maybe (isNothing, fromJust, catMaybes)
 import Data.Map.Strict (insert)
-import Data.Word (Word32)
-import Foreign.Marshal.Array
-import Foreign.Ptr
-import Foreign.Storable
+import GHC.Float (double2Float)
+import Foreign.Ptr (Ptr, plusPtr, nullPtr)
+import Linear.OpenGL
+import Linear.Affine
+import Linear.V2
+import Linear.V3
+import Linear.Matrix
+import Linear.Projection
 
 import Client.App
 import Client.App.Uniform
@@ -30,6 +27,7 @@ import Client.App.Resources
 import Client.App.Resources.Shader
 import Client.Camera
 import Client.Rendering.Mesh
+import Client.Rendering.Geometry.Hexagon
 
 -- The game to play
 data GameScene = GameScene 
@@ -54,8 +52,6 @@ createGameScene = do
   -- Draw a hexagon
   let (vertices, indices) = hexagon
       vertices' = fmap (\(P (V2 x y)) -> P $ V3 x 1 y) vertices
-
-  liftIO $ mapM_ print vertices'
 
   -- Retrieve shader from resources
   Env { envResources = rs } <- ask
