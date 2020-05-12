@@ -4,14 +4,12 @@
 module Client.Rendering.Mesh
   ( Mesh (..)
   , createMesh
-  , renderMesh
   ) where
 
 import qualified Graphics.Rendering.OpenGL as GL
 import qualified Graphics.Rendering.OpenGL.GL.Shaders.Uniform as GL
 import Graphics.Rendering.OpenGL (($=))
 import Control.Monad.RWS.Strict (liftIO, get)
-import Data.Map.Strict (elems)
 import Data.Word (Word32)
 import Foreign.Marshal.Array (withArray)
 import Foreign.Ptr (Ptr, plusPtr, nullPtr)
@@ -20,9 +18,8 @@ import Linear.Affine
 import Linear.V3
 
 import Client.App
-import Client.App.Uniform
 
--- Describe an object to be rendered
+-- Describe a set of vertices that can be rendered
 data Mesh = Mesh
   { meshVAO         :: GL.VertexArrayObject 
   , meshVBO         :: GL.BufferObject
@@ -32,6 +29,10 @@ data Mesh = Mesh
   , meshNumIndices  :: GL.NumArrayIndices
   , meshUniforms    :: [Uniform]
   }
+
+-- Allow meshes to be rendered
+instance Renderable Mesh where
+  render = renderMesh
 
 --------------------------------------------------------------------------------
 
@@ -87,25 +88,19 @@ createMesh vertices indices program uniforms = do
 renderMesh :: Mesh -> [Uniform] -> App ()
 renderMesh mesh uniforms = do
 
-  -- Retrieve the state
-  state <- get
-
-  -- Retrieve data from mesh and state
+  -- Retrieve data from mesh
   let program = meshShader mesh
       count = meshNumIndices mesh
       offset = bufferOffset $ meshFirstIndex mesh
-      meshUnis = meshUniforms mesh
-      globalUnis = elems $ stateGlobalUniforms state
 
-  -- Bind shader to use
-  let program = meshShader mesh
+  -- Bind shader
   GL.currentProgram $= Just program
 
   -- Bind VAO
   GL.bindVertexArrayObject $= Just (meshVAO mesh)
 
   -- Provide all uniform data to shaders
-  applyUniforms program $ globalUnis ++ meshUnis ++ uniforms
+  applyUniforms program $ uniforms ++ meshUniforms mesh
 
   -- Draw vertices as triangles
   liftIO $ GL.drawElements GL.Triangles count GL.UnsignedInt offset

@@ -1,6 +1,6 @@
 -- A module defining how maps are represented and interacted with in Tides 
 module Tides.Map
-  ( Map(..)
+  ( Map (..)
   , Index
   , blankMap
   , randomMap

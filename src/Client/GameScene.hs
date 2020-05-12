@@ -37,13 +37,17 @@ import Client.Rendering.Geometry.Hexagon
 data GameScene = GameScene 
   { gameSceneCamera :: Camera
   , gameSceneMesh   :: Mesh
+  , gameSceneMap    :: Map
   }
+
+-- Define how this scene is rendered
+instance Renderable GameScene where
+  render      = onRender
 
 -- Define how this scene is interacted with
 instance Scene GameScene where
   handleEvent = onHandleEvent
   update      = onUpdate
-  render      = onRender
 
 -- Easily create a blank gamescene
 createGameScene :: App GameScene
@@ -58,12 +62,15 @@ createGameScene = do
   -- Create a camera
   let camera = createCamera (V3 0 2 2) (-30) 270
 
+  -- Create a random map
+  map <- liftIO $ randomMap 3
+
   -- Create a hexagonal prism mesh
   let (vertices, indices) = hexagonalPrism 0.25
   mesh <- createMesh vertices indices program []
 
-  -- Create a GameScene with this information
-  pure $ GameScene camera mesh
+  -- Create a GameScene with this data
+  pure $ GameScene camera mesh map
 
 --------------------------------------------------------------------------------
 
@@ -79,7 +86,7 @@ onUpdate scene dt = do
   Env { envWindow = window } <- ask
 
   -- Retrieve the App State and mouse position
-  st@(State {..}) <- get
+  st@State {..} <- get
   mousePos <- liftIO $ GLFW.getCursorPos window
   mouseStatus <- liftIO $ GLFW.getMouseButton window GLFW.MouseButton'2
 
@@ -130,7 +137,7 @@ onUpdate scene dt = do
 
   -- Get the view and projection matrices from the camera
   let view = cameraView newCamera
-      proj = getProjectionMatrix $ stateWindowSize
+      proj = getProjectionMatrix stateWindowSize
 
   -- Prepare to place updated uniforms into state
   let uniforms = [Uniform "projection" proj, Uniform "view" view]
@@ -144,15 +151,9 @@ onUpdate scene dt = do
       , .. }
 
 -- Display the scene
-onRender :: GameScene -> App ()
-onRender gs = do
+onRender :: GameScene -> [Uniform] -> App ()
+onRender gs uniforms = do
 
   -- Render the mesh
   let mesh = gameSceneMesh gs
-  renderMesh mesh []
-
---------------------------------------------------------------------------------
-
--- Creates a pointer to data
-bufferOffset :: Integral a => a -> Ptr b
-bufferOffset = plusPtr nullPtr . fromIntegral
+  render mesh uniforms

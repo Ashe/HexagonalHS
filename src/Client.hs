@@ -16,7 +16,7 @@ import Control.Concurrent (threadDelay)
 import Control.Concurrent.MVar (newMVar)
 import Control.Concurrent.STM (newTQueueIO, TQueue, atomically, writeTQueue, tryReadTQueue)
 import Data.Maybe (catMaybes)
-import Data.Map.Strict (insert, empty)
+import Data.Map.Strict (insert, empty, elems)
 import Linear.V2
 
 import Client.App
@@ -145,10 +145,10 @@ run = do
   State { stateScene = scene } <- get
   update scene scaledDt
 
-  -- Render the game
-  State { stateScene = scene } <- get
+  -- Render the game with global uniforms
+  State { stateScene = scene, stateGlobalUniforms = uniforms } <- get
   liftIO $ GL.clear [GL.ColorBuffer, GL.DepthBuffer]
-  render scene
+  render scene (elems uniforms)
 
   -- Swap buffers
   liftIO $ do
