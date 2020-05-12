@@ -99,28 +99,27 @@ run !scene = do
   -- Retrieve the window from environment
   win <- asks envWindow
 
-  -- Retrieve state
-  state <- get
-
-  -- Calculate delta time
-  now <- liftIO getNow
-  let dt = now - stateTime state
-      scaledDt = dt * stateDeltaTimeScale state
+  -- Get previous mouse position
+  State{ stateMousePos = previousMousePos } <- get
 
   -- Poll and process events
   liftIO GLFW.pollEvents
   processEvents scene
 
-  -- Calculate current mouse position and delta
-  mousePos <- liftIO $ (\(x, y) -> V2 x y) <$> GLFW.getCursorPos win
-  let mouseDelta = mousePos - stateMousePos state
+  -- Retrieve state
+  state <- get
+
+  -- Calculate delta time and mouse-movement delta
+  now <- liftIO getNow
+  let dt = now - stateTime state
+      scaledDt = dt * stateDeltaTimeScale state
+      mouseDelta = stateMousePos state - previousMousePos
 
   -- Update state with delta-frame information
   put $ state
     { stateTime           = now
     , stateDeltaTime      = scaledDt
     , stateDeltaTimeRaw   = dt
-    , stateMousePos       = mousePos
     , stateDeltaMousePos  = mouseDelta
     }
 
@@ -168,26 +167,29 @@ processEvent :: Scene s => s -> Event -> App ()
 processEvent scene ev = do
   case ev of
 
-    -- Report errors and close the window
-    (EventError e s) -> do
-      liftIO $ putStrLn $ "[Error] " ++ show e ++ ", " ++ show s
-      win <- asks envWindow
-      liftIO $ GLFW.setWindowShouldClose win True
-
-    -- Perform final actions before program terminates
-    (EventWindowClose _) -> liftIO $ putStrLn "Closing application.."
-
-    -- Handle window resizing
-    (EventFramebufferSize _ width height) -> do
-      modify $ \s -> s
-        { stateWindowSize = V2 width height }
-      resizeWindow
+    -- Handle mouse movement
+    (EventCursorPos _ x y) ->
+      modify $ \s -> s{ stateMousePos = V2 x y }
 
     -- Handle mouse buttons
     (EventMouseButton _ mb mbs mk) ->
       when (mbs == GLFW.MouseButtonState'Pressed) $
         modify $ \s -> s
           { stateMouseDrag = insert mb (stateMousePos s) (stateMouseDrag s) }
+
+    -- Handle window resizing
+    (EventFramebufferSize _ width height) -> do
+      modify $ \s -> s{ stateWindowSize = V2 width height }
+      resizeWindow
+
+    -- Perform final actions before program terminates
+    (EventWindowClose _) -> liftIO $ putStrLn "Closing application.."
+
+    -- Report errors and close the window
+    (EventError e s) -> do
+      liftIO $ putStrLn $ "[Error] " ++ show e ++ ", " ++ show s
+      win <- asks envWindow
+      liftIO $ GLFW.setWindowShouldClose win True
 
     -- Otherwise do nothing
     _ -> pure ()

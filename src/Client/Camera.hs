@@ -5,6 +5,7 @@ module Client.Camera
   , getProjectionMatrix
   ) where
 
+import Linear.V2
 import Linear.V3
 import Linear.Metric
 import Linear.Matrix
@@ -44,8 +45,9 @@ calculateViewMatrix pos forward = lookAt pos target $ V3 0 1 0
   where target = pos + forward
 
 -- Get projection matrix
-getProjectionMatrix :: M44 Float
-getProjectionMatrix = perspective 1.5 (1920.0 / 1080.0) 0.5 100
+getProjectionMatrix :: V2 Int -> M44 Float
+getProjectionMatrix size = perspective 1.5 (w / h) 0.1 100
+  where (V2 w h) = fromIntegral <$> size
 
 -- Convert an angle from degrees to radians
 radians :: Float -> Float

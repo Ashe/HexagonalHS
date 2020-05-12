@@ -49,10 +49,8 @@ createGameScene = do
   vao <- liftIO GL.genObjectName
   GL.bindVertexArrayObject $= Just vao
 
-  -- Draw a hexagon
+  -- Draw a hexagonal prism
   let (vertices, indices) = hexagonalPrism 0.25
-
-  liftIO $ mapM print indices
 
   -- Retrieve shader from resources
   Env { envResources = rs } <- ask
@@ -76,7 +74,6 @@ createGameScene = do
 
 -- Process inputs
 onHandleEvent :: GameScene -> Event -> App ()
-onHandleEvent scene EventMouseButton {} = liftIO $ putStrLn "Click!"
 onHandleEvent _ _ = pure ()
 
 -- Update entities in the scene
@@ -143,7 +140,7 @@ onUpdate scene dt = do
 
   -- Get the view and projection matrices from the camera
   let view = cameraView newCamera
-      proj = getProjectionMatrix
+      proj = getProjectionMatrix $ stateWindowSize st
 
   -- Update global uniforms
   let uniforms = [Uniform "projection" proj, Uniform "view" view]
