@@ -1,3 +1,6 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE GADTs #-}
+
 -- A module defining how an app is structured
 module Client.App
   ( App (..)
@@ -5,10 +8,11 @@ module Client.App
   , Env (..)
   , State (..)
   , Event (..)
+  , NullScene (..)
   ) where
 
 import qualified Graphics.UI.GLFW as GLFW
-import Control.Monad.RWS.Strict (RWST)
+import Control.Monad.RWS.Strict (RWST, liftIO)
 import Control.Concurrent.STM (TQueue)
 import Control.Concurrent.MVar (MVar)
 import Data.Map.Strict
@@ -29,16 +33,25 @@ data Env = Env
   }
 
 -- Data to be modified in game
-data State = State 
+data State = forall s. Scene s => State 
+
+  -- Application
   { stateWindowSize       :: V2 Int
   , stateTime             :: Double
   , stateDeltaTime        :: Double
   , stateDeltaTimeRaw     :: Double
   , stateDeltaTimeScale   :: Double
+
+  -- Input
   , stateMousePos         :: V2 Double
   , stateDeltaMousePos    :: V2 Double
   , stateMouseDrag        :: Map GLFW.MouseButton (V2 Double)
+
+  -- Rendering
   , stateGlobalUniforms   :: Map String Uniform
+
+  -- Scene management
+  , stateScene            :: s
   }
 
 -- Something that can run in the app
@@ -52,3 +65,14 @@ class Scene s where
 
   -- Render the scene every frame
   render      :: s -> App ()
+
+-- A scene that does nothing
+data NullScene = NullScene
+instance Scene NullScene where
+  handleEvent _ _ = pure ()
+  render _        = pure ()
+  update _ _      = liftIO $ do 
+    putStrLn "[Note] Attempted to update a NullScene."
+    putStrLn "[Note] Please ensure that State contains a valid Scene."
+    putStrLn "[Note] Program will be terminated.."
+    GLFW.terminate

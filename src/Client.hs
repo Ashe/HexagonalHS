@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE RecordWildCards #-}
 
 -- Entry point for client program
 module Client
@@ -46,25 +47,26 @@ initialise w h = do
       resources <- newMVar rs
 
       -- Specify how the game should be set up and played
-      let state time = State 
+      let state = State 
             { stateWindowSize = V2 0 0
-            , stateTime = time
+            , stateTime = 0
             , stateDeltaTime = 0.0
             , stateDeltaTimeRaw = 0.0
             , stateDeltaTimeScale = 1.0
             , stateMousePos = V2 0 0
             , stateDeltaMousePos = V2 0.0 0.0
             , stateMouseDrag = empty
-            , stateGlobalUniforms = empty }
-          play window = do
+            , stateGlobalUniforms = empty 
+            , stateScene = NullScene }
+          start window = do
             let env = Env window resources eventsChan
             provideCallbacks eventsChan window
             setupOpenGL
             now <- getNow
-            startGame env $ state now
+            startGame env state
 
       -- Run a function in the GLFW window
-      withWindow w h "Tides of Magic" play
+      withWindow w h "Tides of Magic" start
 
     -- If resources fail to load, don't initialise window
     _ -> do
@@ -88,23 +90,39 @@ setupOpenGL = do
 startGame :: Env -> State -> IO ()
 startGame env state = void $ evalRWST beginLoop env state
   where beginLoop = do
-          scene <- createGameScene
+
+          -- Ensure window is sized correctly
           resizeWindow
-          run scene
+
+          -- Get ticks since program began
+          now <- liftIO $ getNow
+
+          -- Initialise first scene
+          scene <- createGameScene
+          
+          -- Ensure state has everything necessary
+          -- @NOTE: RecordWildCards used to avoid bug with Scene
+          modify $ \State{..} -> State
+            { stateTime = now
+            , stateScene = scene
+            , .. }
+
+          -- Begin game loop
+          run
 
 -- Define main game loop
-run :: Scene s => s -> App ()
-run !scene = do
+run :: App ()
+run = do
 
   -- Retrieve the window from environment
   win <- asks envWindow
 
   -- Get previous mouse position
-  State{ stateMousePos = previousMousePos } <- get
+  State { stateMousePos = previousMousePos } <- get
 
   -- Poll and process events
   liftIO GLFW.pollEvents
-  processEvents scene
+  processEvents
 
   -- Retrieve state
   state <- get
@@ -124,9 +142,11 @@ run !scene = do
     }
 
   -- Update the scene
+  State { stateScene = scene } <- get
   update scene scaledDt
 
   -- Render the game
+  State { stateScene = scene } <- get
   liftIO $ GL.clear [GL.ColorBuffer, GL.DepthBuffer]
   render scene
 
@@ -137,7 +157,7 @@ run !scene = do
 
   -- Proceed to the next game frame unless quitting
   shouldQuit <- liftIO $ GLFW.windowShouldClose win
-  unless shouldQuit $ run scene
+  unless shouldQuit run
 
 --------------------------------------------------------------------------------
 
@@ -152,14 +172,15 @@ resizeWindow = do
 --------------------------------------------------------------------------------
 
 -- Respond to user input and window events
-processEvents :: Scene s => s -> App ()
-processEvents scene = do
+processEvents :: App ()
+processEvents = do
+  State { stateScene = scene } <- get
   queue <- asks envEventsChan
   maybeEvents <- liftIO $ atomically $ tryReadTQueue queue
   case maybeEvents of
     Just event -> do
       processEvent scene event
-      processEvents scene
+      processEvents
     Nothing -> pure ()
 
 -- Process the event and then give it to the scene for processing

@@ -21,10 +21,12 @@ library
                         , GLFW-b
                         , OpenGL
                         , OpenGLRaw
-                        , filepath
-                        , yaml
-                        , linear
                         , linear-opengl
+                        , linear
+                        , grid
+                        , yaml
+                        , random
+                        , filepath
                         , directory
                         , containers
                         , distributive
@@ -32,7 +34,8 @@ library
                         , lens
                         , stm
                         , mtl
-  other-modules:          Client.App
+  other-modules:        Tides.Map
+                        , Client.App
                         , Client.App.Event
                         , Client.App.Uniform
                         , Client.App.Resources

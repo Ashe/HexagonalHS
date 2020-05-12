@@ -1,3 +1,5 @@
+{-# LANGUAGE RecordWildCards #-}
+
 -- A module defining the scene used when playing the game
 module Client.GameScene
   ( createGameScene
@@ -21,6 +23,8 @@ import Linear.V3
 import Linear.Matrix
 import Linear.Projection
 
+import Tides.Map
+
 import Client.App
 import Client.App.Uniform
 import Client.App.Resources
@@ -31,8 +35,8 @@ import Client.Rendering.Geometry.Hexagon
 
 -- The game to play
 data GameScene = GameScene 
-  { gameSceneCamera :: MVar Camera
-  , gameSceneMesh   :: MVar Mesh
+  { gameSceneCamera :: Camera
+  , gameSceneMesh   :: Mesh
   }
 
 -- Define how this scene is interacted with
@@ -45,13 +49,6 @@ instance Scene GameScene where
 createGameScene :: App GameScene
 createGameScene = do
 
-  -- Generate and bind VAO
-  vao <- liftIO GL.genObjectName
-  GL.bindVertexArrayObject $= Just vao
-
-  -- Draw a hexagonal prism
-  let (vertices, indices) = hexagonalPrism 0.25
-
   -- Retrieve shader from resources
   Env { envResources = rs } <- ask
   maybeShader <- liftIO $ getShader rs "simple"
@@ -59,13 +56,11 @@ createGameScene = do
   let program = shaderProgram (fromJust maybeShader)
 
   -- Create a camera
-  camera <- liftIO newEmptyMVar
-  let c = createCamera (V3 0 2 2) (-30) 270
-  liftIO $ putMVar camera c
+  let camera = createCamera (V3 0 2 2) (-30) 270
 
-  -- Store information about how to render the vertices
-  mesh <- liftIO newEmptyMVar
-  createMesh vertices indices program [] >>= liftIO . putMVar mesh
+  -- Create a hexagonal prism mesh
+  let (vertices, indices) = hexagonalPrism 0.25
+  mesh <- createMesh vertices indices program []
 
   -- Create a GameScene with this information
   pure $ GameScene camera mesh
@@ -81,13 +76,10 @@ onUpdate :: GameScene -> Double -> App ()
 onUpdate scene dt = do
 
   -- Retrieve the window
-  Env{envWindow = window} <- ask
-
-  -- Retrieve the camera from the GameScene
-  camera <- liftIO $ takeMVar $ gameSceneCamera scene
+  Env { envWindow = window } <- ask
 
   -- Retrieve the App State and mouse position
-  st <- get
+  st@(State {..}) <- get
   mousePos <- liftIO $ GLFW.getCursorPos window
   mouseStatus <- liftIO $ GLFW.getMouseButton window GLFW.MouseButton'2
 
@@ -99,7 +91,8 @@ onUpdate scene dt = do
 
   -- Turn camera on left click
   let sensitivity = 0.1
-      (V2 x y) = (* sensitivity) . double2Float <$> stateDeltaMousePos st
+      camera = gameSceneCamera scene
+      (V2 x y) = (* sensitivity) . double2Float <$> stateDeltaMousePos
       previousAngle@(pitch, yaw) = (cameraPitch camera, cameraYaw camera)
       (pitch', yaw') = case mouseStatus of
         GLFW.MouseButtonState'Pressed ->
@@ -135,25 +128,27 @@ onUpdate scene dt = do
       destination = cameraPosition camera + ((* speed) <$> movement)
       newCamera = createCamera destination pitch' yaw'
 
-  -- Replace the old camera with the new one
-  liftIO $ putMVar (gameSceneCamera scene) newCamera
-
   -- Get the view and projection matrices from the camera
   let view = cameraView newCamera
-      proj = getProjectionMatrix $ stateWindowSize st
+      proj = getProjectionMatrix $ stateWindowSize
 
-  -- Update global uniforms
+  -- Prepare to place updated uniforms into state
   let uniforms = [Uniform "projection" proj, Uniform "view" view]
-      globalUniforms = stateGlobalUniforms st
-  put $ st{ stateGlobalUniforms = foldl (\m u -> insert (uniformName u) u m) 
-      globalUniforms uniforms }
+      globalUniforms = stateGlobalUniforms
+
+  -- Update state, including the newly updated scene
+  put $ State
+      { stateScene = scene { gameSceneCamera = newCamera }
+      , stateGlobalUniforms = foldl (\m u -> insert (uniformName u) u m) 
+          globalUniforms uniforms
+      , .. }
 
 -- Display the scene
 onRender :: GameScene -> App ()
 onRender gs = do
 
   -- Render the mesh
-  mesh <- liftIO $ readMVar $ gameSceneMesh gs
+  let mesh = gameSceneMesh gs
   renderMesh mesh []
 
 --------------------------------------------------------------------------------
