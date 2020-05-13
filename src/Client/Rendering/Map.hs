@@ -3,7 +3,8 @@ module Client.Rendering.Map
   ( renderMap
   ) where
 
-import Control.Monad.RWS.Strict (liftIO, ask, forM_)
+import Control.Monad (unless, forM_)
+import Control.Monad.RWS.Strict (liftIO, ask)
 import Data.Map.Strict (toList)
 import Linear.OpenGL
 import Linear.Vector
@@ -34,7 +35,7 @@ renderMap map uniforms = do
   -- Render each tile in the map
   liftIO $ forM_ (toList $ mapTiles map) $ \(index, height) ->
     let uniforms' = uniforms ++ makeUniforms index height in
-      render mesh shader uniforms'
+      unless (height == 0) $ render mesh shader uniforms'
 
 --------------------------------------------------------------------------------
 

@@ -21,7 +21,7 @@ hexagonRadius = 1
 
 -- Padding between hexagons
 hexagonPadding :: Float
-hexagonPadding = 0.15
+hexagonPadding = 0.3
 
 -- Create a hexagon centered at (0, 0)
 hexagon :: ([Point V2 Float], [Word32])

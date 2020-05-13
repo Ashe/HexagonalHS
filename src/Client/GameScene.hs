@@ -10,7 +10,7 @@ import qualified Graphics.Rendering.OpenGL as GL
 import qualified Graphics.Rendering.OpenGL.GL.CoordTrans as GL
 import Graphics.Rendering.OpenGL (($=))
 import Control.Monad (foldM, when, unless, void)
-import Control.Monad.RWS.Strict (liftIO, ask, get, put)
+import Control.Monad.RWS.Strict (liftIO, ask, get, put, modify)
 import Control.Concurrent.MVar
 import Data.Maybe (isNothing, fromJust, catMaybes)
 import Data.Map.Strict (insert)
@@ -49,7 +49,7 @@ createGameScene = do
   let camera = createCamera (V3 0 2 2) (-30) 270
 
   -- Create a random map
-  map <- liftIO $ randomMap 3
+  map <- liftIO $ randomMap 10
 
   -- Create a GameScene with this data
   pure $ GameScene camera map
@@ -58,7 +58,23 @@ createGameScene = do
 
 -- Process inputs
 onHandleEvent :: GameScene -> Event -> App ()
+
+-- Recreate map when F1 pressed
+onHandleEvent scene (EventKey _ GLFW.Key'F1 _ GLFW.KeyState'Pressed _) = do
+
+  -- Recreate the map
+  map <- liftIO $ randomMap 10
+
+  -- Update the scene
+  let s = scene { gameSceneMap = map }
+  modify $ \State{..} -> State
+    {  stateScene = s
+    , .. }
+
+-- Otherwise do nothing
 onHandleEvent _ _ = pure ()
+
+--------------------------------------------------------------------------------
 
 -- Update entities in the scene
 onUpdate :: GameScene -> Double -> App ()
@@ -113,7 +129,7 @@ onUpdate scene dt = do
   -- Update the camera
   movement <- liftIO calcMove
   let speed :: Float
-      speed = 2.0 * double2Float dt
+      speed = 5.0 * double2Float dt
       destination = cameraPosition camera + ((* speed) <$> movement)
       newCamera = createCamera destination pitch' yaw'
 
@@ -131,6 +147,8 @@ onUpdate scene dt = do
       , stateGlobalUniforms = foldl (\m u -> insert (uniformName u) u m) 
           globalUniforms uniforms
       , .. }
+
+--------------------------------------------------------------------------------
 
 -- Display the scene
 onRender :: GameScene -> [Uniform] -> App ()
