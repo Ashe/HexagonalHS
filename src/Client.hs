@@ -18,6 +18,7 @@ import Control.Concurrent.STM (newTQueueIO, TQueue, atomically, writeTQueue, try
 import Data.Maybe (catMaybes)
 import Data.Map.Strict (insert, empty, elems)
 import Linear.V2
+import Linear.Matrix
 
 import Client.App
 import Client.App.Event
@@ -86,16 +87,19 @@ startGame env state = void $ evalRWST beginLoop env state
           resizeWindow
 
           -- Get ticks since program began
-          now <- liftIO $ getNow
+          now <- liftIO getNow
 
           -- Initialise first scene
           scene <- createGameScene
           
           -- Ensure state has everything necessary
           -- @NOTE: RecordWildCards used to avoid bug with Scene
+          let idMatUni = Uniform "transform" (identity :: M44 Float)
           modify $ \State{..} -> State
             { stateTime = now
             , stateScene = scene
+            , stateGlobalUniforms = 
+                insert "transform" idMatUni stateGlobalUniforms
             , .. }
 
           -- Begin game loop

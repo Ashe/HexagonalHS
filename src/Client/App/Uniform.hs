@@ -10,6 +10,8 @@ module Client.App.Uniform
 import qualified Graphics.Rendering.OpenGL as GL
 import Graphics.Rendering.OpenGL (($=))
 
+import Client.App.Resources.Shader
+
 -- Easy representation of uniform data
 data Uniform = forall a. GL.Uniform a => Uniform 
   { uniformName :: String
@@ -17,8 +19,8 @@ data Uniform = forall a. GL.Uniform a => Uniform
   }
 
 -- Provide a list of uniforms to the supplied shader
-applyUniforms :: GL.Program -> [Uniform] -> IO ()
-applyUniforms program uniforms = mapM_ f uniforms
+applyUniforms :: Shader -> [Uniform] -> IO ()
+applyUniforms shader = mapM_ f
   where f (Uniform n d) = do
-          location <- GL.uniformLocation program n
+          location <- GL.uniformLocation shader n
           GL.uniform location $= d
