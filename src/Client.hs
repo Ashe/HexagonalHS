@@ -37,41 +37,32 @@ initialise w h = do
   eventsChan <- newTQueueIO :: IO (TQueue Event)
 
   -- Attempt to load resources
-  maybeResources <- loadResourcesFrom "assets"
-  case maybeResources of
+  loadedResources <- loadResourcesFrom "assets"
 
-    -- If resources were loaded
-    (Just rs) -> do
+  -- Wrap resources into mvar
+  resources <- newMVar loadedResources
 
-      -- Wrap resources into mvar
-      resources <- newMVar rs
+  -- Specify how the game should be set up and played
+  let state = State 
+        { stateWindowSize = V2 0 0
+        , stateTime = 0
+        , stateDeltaTime = 0.0
+        , stateDeltaTimeRaw = 0.0
+        , stateDeltaTimeScale = 1.0
+        , stateMousePos = V2 0 0
+        , stateDeltaMousePos = V2 0.0 0.0
+        , stateMouseDrag = empty
+        , stateGlobalUniforms = empty 
+        , stateScene = NullScene }
+      start window = do
+        let env = Env window resources eventsChan
+        provideCallbacks eventsChan window
+        setupOpenGL
+        now <- getNow
+        startGame env state
 
-      -- Specify how the game should be set up and played
-      let state = State 
-            { stateWindowSize = V2 0 0
-            , stateTime = 0
-            , stateDeltaTime = 0.0
-            , stateDeltaTimeRaw = 0.0
-            , stateDeltaTimeScale = 1.0
-            , stateMousePos = V2 0 0
-            , stateDeltaMousePos = V2 0.0 0.0
-            , stateMouseDrag = empty
-            , stateGlobalUniforms = empty 
-            , stateScene = NullScene }
-          start window = do
-            let env = Env window resources eventsChan
-            provideCallbacks eventsChan window
-            setupOpenGL
-            now <- getNow
-            startGame env state
-
-      -- Run a function in the GLFW window
-      withWindow w h "Tides of Magic" start
-
-    -- If resources fail to load, don't initialise window
-    _ -> do
-      putStrLn "[Error] Resources could not be loaded."
-      pure ()
+  -- Run a function in the GLFW window
+  withWindow w h "Tides of Magic" start
 
 -- Setup OpenGL
 setupOpenGL :: IO ()

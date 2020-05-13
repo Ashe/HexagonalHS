@@ -40,8 +40,10 @@ library
                         , Client.App.Uniform
                         , Client.App.Resources
                         , Client.App.Resources.Shader
+                        , Client.App.Resources.Mesh
                         , Client.Utils
-                        , Client.Rendering.Mesh
+                        , Client.Rendering.Renderable
+                        , Client.Rendering.Map
                         , Client.Rendering.Geometry.Hexagon
                         , Client.GameScene
                         , Client.Camera

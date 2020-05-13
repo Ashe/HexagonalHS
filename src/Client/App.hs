@@ -4,7 +4,6 @@
 -- A module defining how an app is structured
 module Client.App
   ( App (..)
-  , Renderable (..)
   , Scene (..)
   , Env (..)
   , State (..)
@@ -56,12 +55,8 @@ data State = forall s. Scene s => State
   , stateScene            :: s
   }
 
--- Renderables can be displayed on screen
-class Renderable r where
-  render      :: r -> [Uniform] -> App ()
-
 -- Scenes determine what the user can see and interact with
-class Renderable s => Scene s where
+class Scene s where
 
   -- Respond to keypresses
   handleEvent :: s -> Event -> App ()
@@ -69,14 +64,16 @@ class Renderable s => Scene s where
   -- Update the scene every frame
   update      :: s -> Double -> App ()
 
+  -- Render the scene to the screen
+  render      :: s -> [Uniform] -> App ()
+
 --------------------------------------------------------------------------------
 
 -- A scene that does nothing
 data NullScene    = NullScene
-instance Renderable NullScene where
-  render _ _      = pure ()
 instance Scene NullScene where
   handleEvent _ _ = pure ()
+  render _ _      = pure ()
   update _ _      = liftIO $ do 
     putStrLn "[Note] Attempted to update a NullScene."
     putStrLn "[Note] Please ensure that State contains a valid Scene."

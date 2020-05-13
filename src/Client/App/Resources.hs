@@ -5,7 +5,12 @@
 module Client.App.Resources
   ( Resources
   , loadResourcesFrom
+  , Mesh
+  , Shader
   , getShader
+  , getMesh
+  , tryGetShader
+  , tryGetMesh
   ) where
 
 import Control.Lens
@@ -16,7 +21,10 @@ import System.Directory
 import System.FilePath
 import Data.Map.Strict
 
+import Client.App.Resources.Mesh
 import Client.App.Resources.Shader
+
+import Client.Rendering.Geometry.Hexagon
 
 -- Simplified types
 type RInfo = (String, String)
@@ -30,8 +38,9 @@ data Resource a = Resource
   }
 
 -- Store resources by type and name
-newtype Resources = Resources
-  { _shaders :: RMap Shader
+data Resources = Resources
+  { _shaders  :: RMap Shader
+  , _meshes   :: RMap Mesh
   }
 
 -- Create lenses for each of Resources' records
@@ -40,13 +49,17 @@ makeLenses ''Resources
 --------------------------------------------------------------------------------
   
 -- Load all resources recusively given a directory
-loadResourcesFrom :: FilePath -> IO (Maybe Resources)
+loadResourcesFrom :: FilePath -> IO Resources
 loadResourcesFrom fp = do
   let path = addTrailingPathSeparator fp
   putStrLn $ "Loading resources from: " ++ path
   exists <- doesPathExist path
-  if exists then Just <$> loadAt (Resources empty) path
-  else pure Nothing
+  defaultResources <- generateResources
+  if exists then do
+    loadAt defaultResources path
+  else do
+    putStrLn $ "[Warning] Directory doesn't exist."
+    pure defaultResources
 
 -- Load resources recursively
 loadAt :: Resources -> FilePath -> IO Resources
@@ -72,14 +85,52 @@ initResource r fp =
     ".shader.yaml" -> Just $ over shaders (init $ loadShader fp) r
     _ -> Nothing
   where name = dropExtensions . takeBaseName $ fp
-        init f = insert name $ Resource Nothing f
-        temp = putStrLn "LOAD FUNCTION!" >> pure Nothing
+        init f = insert name $ makeResource f
 
 --------------------------------------------------------------------------------
 
--- Attempts to get a shader without taking mvars, but loads if required
-getShader :: MVar Resources -> String -> IO (Maybe Shader)
-getShader mR name = tryGet mR (info "shader") shaders
+-- Generates a blank set of resources
+generateResources :: IO Resources
+generateResources = do
+
+  -- Hexagonal prism mesh
+  let hex = hexagonalPrism 0.25
+      makeHex = Just <$> createMesh (fst hex) (snd hex) []
+  
+  -- Return loaders for generated resources
+  pure $ Resources
+    { _shaders = empty
+    , _meshes = fromList [ ("hexagonal_prism", makeResource makeHex) ]
+    }
+
+--------------------------------------------------------------------------------
+
+-- Get a resource, or crash the program with an error message
+
+getShader :: MVar Resources -> String -> IO Shader
+getShader mR name = do 
+  resource <- tryGetShader mR name
+  case resource of
+    Just shader -> pure shader
+    _ -> error $ "[Error] could not get shader: '" ++ name ++ "'."
+
+getMesh :: MVar Resources -> String -> IO Mesh
+getMesh mR name = do
+  resource <- tryGetMesh mR name
+  case resource of
+    Just mesh -> pure mesh
+    _ -> error $ "[Error] could not get mesh: '" ++ name ++ "'."
+
+--------------------------------------------------------------------------------
+
+-- Attempts to get a resource without taking mvars, but loads if required
+
+tryGetShader :: MVar Resources -> String -> IO (Maybe Shader)
+tryGetShader mR name = tryGet mR (info "shader") shaders
+  where info t = (t, name)
+
+tryGetMesh :: MVar Resources -> String -> IO (Maybe Mesh)
+tryGetMesh mR name = tryGet mR (info "mesh") meshes
   where info t = (t, name)
 
 --------------------------------------------------------------------------------
@@ -127,3 +178,9 @@ tryLoad mR info@(t, name) lens = do
       putStrLn $ "[Error] Failed to load " ++ t ++ ": '" ++ name ++ "'."
       putMVar mR rs
       pure Nothing
+
+--------------------------------------------------------------------------------
+
+-- Easy way of creating a resource
+makeResource :: IO (Maybe a) -> Resource a
+makeResource loader = Resource Nothing loader

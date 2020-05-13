@@ -30,10 +30,7 @@ instance Y.FromJSON Description where
   parseJSON _ = mempty
 
 -- Store the created program
-data Shader = Shader
-  { shaderDescription :: Description
-  , shaderProgram     :: GL.Program 
-  }
+type Shader = GL.Program
 
 -- Store a to-be-compiled shader
 data ShaderInfo = ShaderInfo GL.ShaderType FilePath
@@ -63,7 +60,7 @@ loadShader fp = do
               \program -> do
                  loadCompileAttach program $ catMaybes shaders
                  linkAndCheck program
-                 pure $ Just $ Shader desc program
+                 pure $ Just program
 
     -- If parsing failed, report the error and do nothing
     Left exc -> do

@@ -26,38 +26,24 @@ import Linear.Projection
 import Tides.Map
 
 import Client.App
-import Client.App.Uniform
-import Client.App.Resources
-import Client.App.Resources.Shader
 import Client.Camera
-import Client.Rendering.Mesh
-import Client.Rendering.Geometry.Hexagon
+import Client.Rendering.Map
 
 -- The game to play
 data GameScene = GameScene 
   { gameSceneCamera :: Camera
-  , gameSceneMesh   :: Mesh
   , gameSceneMap    :: Map
   }
-
--- Define how this scene is rendered
-instance Renderable GameScene where
-  render      = onRender
 
 -- Define how this scene is interacted with
 instance Scene GameScene where
   handleEvent = onHandleEvent
   update      = onUpdate
+  render      = onRender
 
 -- Easily create a blank gamescene
 createGameScene :: App GameScene
 createGameScene = do
-
-  -- Retrieve shader from resources
-  Env { envResources = rs } <- ask
-  maybeShader <- liftIO $ getShader rs "simple"
-  when (isNothing maybeShader) $ error "Could not find shader"
-  let program = shaderProgram (fromJust maybeShader)
 
   -- Create a camera
   let camera = createCamera (V3 0 2 2) (-30) 270
@@ -65,12 +51,8 @@ createGameScene = do
   -- Create a random map
   map <- liftIO $ randomMap 3
 
-  -- Create a hexagonal prism mesh
-  let (vertices, indices) = hexagonalPrism 0.25
-  mesh <- createMesh vertices indices program []
-
   -- Create a GameScene with this data
-  pure $ GameScene camera mesh map
+  pure $ GameScene camera map
 
 --------------------------------------------------------------------------------
 
@@ -154,6 +136,5 @@ onUpdate scene dt = do
 onRender :: GameScene -> [Uniform] -> App ()
 onRender gs uniforms = do
 
-  -- Render the mesh
-  let mesh = gameSceneMesh gs
-  render mesh uniforms
+  -- Render the map
+  renderMap (gameSceneMap gs) uniforms
