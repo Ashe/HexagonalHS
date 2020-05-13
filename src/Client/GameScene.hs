@@ -49,7 +49,7 @@ createGameScene = do
   let camera = createCamera (V3 0 2 2) (-30) 270
 
   -- Create a random map
-  map <- liftIO $ randomMap 10
+  map <- liftIO $ randomMap 20
 
   -- Create a GameScene with this data
   pure $ GameScene camera map
@@ -63,7 +63,7 @@ onHandleEvent :: GameScene -> Event -> App ()
 onHandleEvent scene (EventKey _ GLFW.Key'F1 _ GLFW.KeyState'Pressed _) = do
 
   -- Recreate the map
-  map <- liftIO $ randomMap 10
+  map <- liftIO $ randomMap 20
 
   -- Update the scene
   let s = scene { gameSceneMap = map }
@@ -129,7 +129,7 @@ onUpdate scene dt = do
   -- Update the camera
   movement <- liftIO calcMove
   let speed :: Float
-      speed = 5.0 * double2Float dt
+      speed = 10.0 * double2Float dt
       destination = cameraPosition camera + ((* speed) <$> movement)
       newCamera = createCamera destination pitch' yaw'
 

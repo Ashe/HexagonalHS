@@ -34,15 +34,20 @@ blankMap size = Map
 -- Create a random map of a given size
 randomMap :: Int -> IO Map
 randomMap size = do
-  
-  -- Seed random
-  g <- newStdGen
 
   -- Start with the blank map
   let blank = blankMap size
 
-  -- Randomise heights
-  rHeights <- mapM (\_ -> randomRIO (0, 4)) $ mapTiles blank
+  -- Randomise map
+  tiles <- mapM (genRandomTile 8) $ mapTiles blank
 
   -- Return the new map
-  pure $ blank { mapTiles = rHeights }
+  pure $ blank { mapTiles = tiles }
+
+-- Generate a tile with a random height
+genRandomTile :: Int -> a -> IO Int
+genRandomTile max _ = do
+  land <- randomRIO (0, 2) :: IO Int
+  if land == 0 then pure 0
+  else randomRIO (1, max)
+
