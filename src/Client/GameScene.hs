@@ -13,7 +13,7 @@ import Control.Monad (foldM, when, unless, void)
 import Control.Monad.RWS.Strict (liftIO, ask, get, put, modify)
 import Control.Concurrent.MVar
 import Data.Maybe (isNothing, fromJust, catMaybes)
-import Data.Map.Strict (insert)
+import Data.Map.Strict (insert, foldl')
 import GHC.Float (double2Float)
 import Foreign.Ptr (Ptr, plusPtr, nullPtr)
 import Linear.OpenGL
@@ -26,8 +26,9 @@ import Linear.Projection
 import Tides.Map
 
 import Client.App
+import Client.App.Resources
 import Client.Camera
-import Client.Rendering.Map
+import Client.Rendering.Map as R
 
 -- The game to play
 data GameScene = GameScene 
@@ -59,6 +60,18 @@ createGameScene = do
 -- Process inputs
 onHandleEvent :: GameScene -> Event -> App ()
 
+-- Recreate projection matrix on resize
+onHandleEvent scene (EventWindowSize _ w h) = do
+
+  -- Get the state
+  state@State { stateWindowSize = size } <- get
+
+  -- Update the scene
+  let p = getProjectionMatrix size
+  put $ state
+    { stateGlobalUniforms = insert "projection" 
+        (Uniform "projection" p) (stateGlobalUniforms state) }
+
 -- Recreate map when F1 pressed
 onHandleEvent scene (EventKey _ GLFW.Key'F1 _ GLFW.KeyState'Pressed _) = do
 
@@ -68,7 +81,7 @@ onHandleEvent scene (EventKey _ GLFW.Key'F1 _ GLFW.KeyState'Pressed _) = do
   -- Update the scene
   let s = scene { gameSceneMap = map }
   modify $ \State{..} -> State
-    {  stateScene = s
+    { stateScene = s
     , .. }
 
 -- Otherwise do nothing
@@ -138,14 +151,12 @@ onUpdate scene dt = do
       proj = getProjectionMatrix stateWindowSize
 
   -- Prepare to place updated uniforms into state
-  let uniforms = [Uniform "projection" proj, Uniform "view" view]
-      globalUniforms = stateGlobalUniforms
+  let uniforms = stateGlobalUniforms
 
   -- Update state, including the newly updated scene
   put $ State
       { stateScene = scene { gameSceneCamera = newCamera }
-      , stateGlobalUniforms = foldl (\m u -> insert (uniformName u) u m) 
-          globalUniforms uniforms
+      , stateGlobalUniforms = insert "view" (Uniform "view" view) uniforms
       , .. }
 
 --------------------------------------------------------------------------------
@@ -154,5 +165,9 @@ onUpdate scene dt = do
 onRender :: GameScene -> [Uniform] -> App ()
 onRender gs uniforms = do
 
+  -- Retrieve map shader
+  Env { envResources = rs } <- ask
+  mapShader  <- liftIO $ getShader rs "simple"
+
   -- Render the map
-  renderMap (gameSceneMap gs) uniforms
+  R.render (gameSceneMap gs) mapShader uniforms

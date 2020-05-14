@@ -1,6 +1,6 @@
 -- A module dedicated to rendering the game map
 module Client.Rendering.Map
-  ( renderMap
+  ( render
   ) where
 
 import Control.Monad (unless, forM_)
@@ -19,21 +19,27 @@ import Client.App hiding (render)
 import Client.App.Uniform
 import Client.App.Resources
 import Client.Rendering.Renderable
+import Client.Rendering.Mesh
 import Client.Rendering.Geometry.Hexagon
 
+-- Allow maps to be rendered
+instance Renderable Map where
+  render = renderMap
+
+--------------------------------------------------------------------------------
+
 -- Render every tile on the map
-renderMap :: Map -> [Uniform] -> App ()
-renderMap map uniforms = do
+renderMap :: Map -> Shader -> [Uniform] -> App ()
+renderMap map shader uniforms = do
 
   -- Retrieve resources
   Env { envResources = rs } <- ask
 
   -- Obtain the mesh and shader from resources (or crash)
   mesh    <- liftIO $ getMesh   rs "hexagonal_prism"
-  shader  <- liftIO $ getShader rs "simple"
 
   -- Render each tile in the map
-  liftIO $ forM_ (toList $ mapTiles map) $ \(index, height) ->
+  forM_ (toList $ mapTiles map) $ \(index, height) ->
     let uniforms' = uniforms ++ makeUniforms index height in
       unless (height == 0) $ render mesh shader uniforms'
 

@@ -49,6 +49,11 @@ getProjectionMatrix :: V2 Int -> M44 Float
 getProjectionMatrix size = perspective 1.5 (w / h) 0.1 100
   where (V2 w h) = fromIntegral <$> size
 
+castRay :: Camera -> V3 Float
+castRay = undefined
+
+--------------------------------------------------------------------------------
+
 -- Convert an angle from degrees to radians
 radians :: Float -> Float
 radians angle = pi * (angle / 180)

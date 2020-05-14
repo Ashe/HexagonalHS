@@ -8,7 +8,7 @@ import Control.Concurrent.STM (TQueue, atomically, writeTQueue)
 
 -- Types of event
 data Event =
-    EventError           !GLFW.Error !String
+    EventError           !GLFW.Error  !String
   | EventWindowPos       !GLFW.Window !Int !Int
   | EventWindowSize      !GLFW.Window !Int !Int
   | EventWindowClose     !GLFW.Window

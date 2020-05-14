@@ -16,8 +16,8 @@ import Foreign.Storable (sizeOf)
 import Linear.Affine
 import Linear.V3
 
+import Client.App.Uniform
 import Client.App.Resources.Shader
-import Client.Rendering.Renderable
 
 -- Describe a set of vertices that can be rendered
 data Mesh = Mesh
@@ -28,10 +28,6 @@ data Mesh = Mesh
   , meshNumIndices  :: GL.NumArrayIndices
   , meshUniforms    :: [Uniform]
   }
-
--- Allow meshes to be rendered
-instance Renderable Mesh where
-  render = renderMesh
 
 --------------------------------------------------------------------------------
 
@@ -79,32 +75,7 @@ createMesh vertices indices uniforms = do
     , meshUniforms = uniforms
     }
 
--- Render the mesh
-renderMesh :: Mesh -> Shader -> [Uniform] -> IO ()
-renderMesh mesh shader uniforms = do
-
-  -- Retrieve data from mesh
-  let count = meshNumIndices mesh
-      offset = bufferOffset $ meshFirstIndex mesh
-
-  -- Bind shader
-  GL.currentProgram $= Just shader
-
-  -- Bind VAO
-  GL.bindVertexArrayObject $= Just (meshVAO mesh)
-
-  -- Provide all uniform data to shaders
-  applyUniforms shader $ uniforms ++ meshUniforms mesh
-
-  -- Draw vertices as triangles
-  GL.drawElements GL.Triangles count GL.UnsignedInt offset
-
-  -- Unbind VAO
-  GL.bindVertexArrayObject $= Nothing
-
-  -- Unbind shader
-  GL.currentProgram $= Nothing
-
 -- Creates a pointer to data
+-- @NOTE: DUPLICATED IN Rendering/Mesh.hs
 bufferOffset :: Integral a => a -> Ptr b
 bufferOffset = plusPtr nullPtr . fromIntegral

@@ -43,6 +43,7 @@ library
                         , Client.App.Resources.Mesh
                         , Client.Utils
                         , Client.Rendering.Renderable
+                        , Client.Rendering.Mesh
                         , Client.Rendering.Map
                         , Client.Rendering.Geometry.Hexagon
                         , Client.GameScene
