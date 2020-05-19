@@ -58,7 +58,7 @@ loadResourcesFrom fp = do
   if exists then do
     loadAt defaultResources path
   else do
-    putStrLn $ "[Warning] Directory doesn't exist."
+    putStrLn "[Warning] Directory doesn't exist."
     pure defaultResources
 
 -- Load resources recursively
@@ -94,8 +94,8 @@ generateResources :: IO Resources
 generateResources = do
 
   -- Hexagonal prism mesh
-  let hex = hexagonalPrism 0.25
-      makeHex = Just <$> createMesh (fst hex) (snd hex) []
+  let (vertices, indices) = hexagonalPrism 0.25
+      makeHex = Just <$> createMesh vertices indices []
   
   -- Return loaders for generated resources
   pure $ Resources
@@ -183,4 +183,4 @@ tryLoad mR info@(t, name) lens = do
 
 -- Easy way of creating a resource
 makeResource :: IO (Maybe a) -> Resource a
-makeResource loader = Resource Nothing loader
+makeResource = Resource Nothing

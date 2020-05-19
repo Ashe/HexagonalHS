@@ -26,9 +26,6 @@ renderMesh mesh shader uniforms = do
   let count = meshNumIndices mesh
       offset = bufferOffset $ meshFirstIndex mesh
 
-  -- Bind shader
-  GL.currentProgram $= Just shader
-
   -- Bind VAO
   GL.bindVertexArrayObject $= Just (meshVAO mesh)
 
@@ -37,12 +34,6 @@ renderMesh mesh shader uniforms = do
 
   -- Draw vertices as triangles
   liftIO $ GL.drawElements GL.Triangles count GL.UnsignedInt offset
-
-  -- Unbind VAO
-  GL.bindVertexArrayObject $= Nothing
-
-  -- Unbind shader
-  GL.currentProgram $= Nothing
 
 -- Creates a pointer to data
 -- @NOTE: DUPLICATED IN Resources/Mesh.hs

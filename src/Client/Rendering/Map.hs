@@ -30,17 +30,20 @@ instance Renderable Map where
 
 -- Render every tile on the map
 renderMap :: Map -> Shader -> [Uniform] -> App ()
-renderMap map shader uniforms = do
+renderMap map shader globalUniforms = do
 
   -- Retrieve resources
   Env { envResources = rs } <- ask
 
   -- Obtain the mesh and shader from resources (or crash)
-  mesh    <- liftIO $ getMesh   rs "hexagonal_prism"
+  mesh <- liftIO $ getMesh rs "hexagonal_prism"
+
+  -- Apply global uniforms to all tiles (this also binds the shader)
+  applyUniforms shader globalUniforms
 
   -- Render each tile in the map
   forM_ (toList $ mapTiles map) $ \(index, height) ->
-    let uniforms' = uniforms ++ makeUniforms index height in
+    let uniforms' = makeUniforms index height in
       unless (height == 0) $ render mesh shader uniforms'
 
 --------------------------------------------------------------------------------

@@ -169,5 +169,5 @@ onRender gs uniforms = do
   Env { envResources = rs } <- ask
   mapShader  <- liftIO $ getShader rs "simple"
 
-  -- Render the map
+  -- Render the map with global uniforms
   R.render (gameSceneMap gs) mapShader uniforms

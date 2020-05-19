@@ -29,30 +29,30 @@ type App = RWST Env [Int] State IO
 -- Read-only environment data
 data Env = Env
   { envWindow             :: !GLFW.Window
-  , envResources          :: MVar Resources
-  , envEventsChan         :: TQueue Event
+  , envResources          :: !(MVar Resources)
+  , envEventsChan         :: !(TQueue Event)
   }
 
 -- Data to be modified in game
 data State = forall s. Scene s => State 
 
   -- Application
-  { stateWindowSize       :: V2 Int
-  , stateTime             :: Double
-  , stateDeltaTime        :: Double
-  , stateDeltaTimeRaw     :: Double
-  , stateDeltaTimeScale   :: Double
+  { stateWindowSize       :: !(V2 Int)
+  , stateTime             :: !Double
+  , stateDeltaTime        :: !Double
+  , stateDeltaTimeRaw     :: !Double
+  , stateDeltaTimeScale   :: !Double
 
   -- Input
-  , stateMousePos         :: V2 Double
-  , stateDeltaMousePos    :: V2 Double
-  , stateMouseDrag        :: Map GLFW.MouseButton (V2 Double)
+  , stateMousePos         :: !(V2 Double)
+  , stateDeltaMousePos    :: !(V2 Double)
+  , stateMouseDrag        :: !(Map GLFW.MouseButton (V2 Double))
 
   -- Rendering
-  , stateGlobalUniforms   :: Map String Uniform
+  , stateGlobalUniforms   :: !(Map String Uniform)
 
   -- Scene management
-  , stateScene            :: s
+  , stateScene            :: !s
   }
 
 -- Scenes determine what the user can see and interact with
