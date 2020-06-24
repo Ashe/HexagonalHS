@@ -26,6 +26,9 @@ withWindow width height title f = do
         -- Focus on the new window's context
         GLFW.makeContextCurrent m
 
+        -- Disable vsync
+        GLFW.swapInterval 0
+
         -- Apply a function to the window
         f win
 

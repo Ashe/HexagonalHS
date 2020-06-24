@@ -50,7 +50,7 @@ createGameScene = do
   let camera = createCamera (V3 0 2 2) (-30) 270
 
   -- Create a random map
-  map <- liftIO $ randomMap 20
+  map <- liftIO $ randomMap 10
 
   -- Create a GameScene with this data
   pure $ GameScene camera map

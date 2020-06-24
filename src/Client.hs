@@ -145,9 +145,7 @@ run = do
   render scene (elems uniforms)
 
   -- Swap buffers
-  liftIO $ do
-    GLFW.swapBuffers win
-    GL.flush
+  liftIO $ GLFW.swapBuffers win
 
   -- Proceed to the next game frame unless quitting
   shouldQuit <- liftIO $ GLFW.windowShouldClose win
