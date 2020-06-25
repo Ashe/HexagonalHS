@@ -4,14 +4,20 @@
 -- A module used to create and render objects in OpenGL
 module Client.App.Uniform
   ( Uniform (..) 
+  , UniformData (..)
   ) where
 
 import qualified Graphics.Rendering.OpenGL as GL
-
-import Client.App.Resources.Shader
+import Foreign.Storable (Storable)
+import Data.Vector.Storable (Vector)
 
 -- Easy representation of uniform data
-data Uniform = forall a. GL.Uniform a => Uniform 
-  { uniformName :: String
-  , uniformData :: a
+data Uniform = Uniform
+  { uniformName   :: String
+  , uniformData   :: UniformData
   }
+
+-- Easy representation of uniform data
+data UniformData where
+  UniformData :: GL.Uniform a => a -> UniformData
+  UniformDataMulti :: (GL.Uniform a, Storable a) => Vector a -> UniformData

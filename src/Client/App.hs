@@ -9,6 +9,7 @@ module Client.App
   , State (..)
   , Event (..)
   , Uniform (..)
+  , UniformData (..)
   , NullScene (..)
   ) where
 

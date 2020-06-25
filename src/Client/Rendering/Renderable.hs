@@ -5,9 +5,12 @@ module Client.Rendering.Renderable
   , applyUniforms
   ) where
 
+import Prelude hiding (length)
 import qualified Graphics.Rendering.OpenGL as GL
 import Graphics.Rendering.OpenGL (($=))
 import Control.Monad.RWS.Strict (liftIO)
+import Data.Vector.Storable (Vector, unsafeWith, length)
+import Foreign.Ptr
 
 import Client.App
 import Client.App.Uniform
@@ -22,6 +25,9 @@ applyUniforms :: Shader -> [Uniform] -> App ()
 applyUniforms shader uniforms = do
   GL.currentProgram $= Just shader
   liftIO $ mapM_ f uniforms
-  where f (Uniform n d) = do
-          location <- GL.uniformLocation shader n
-          GL.uniform location $= d
+  where f (Uniform name d) = do
+            location <- GL.uniformLocation shader name
+            case d of
+              UniformData u -> GL.uniform location $= u
+              UniformDataMulti v -> unsafeWith v $
+                  GL.uniformv location (fromIntegral $ length v)

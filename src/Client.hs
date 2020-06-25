@@ -93,7 +93,8 @@ startGame env state = void $ evalRWST beginLoop env state
           
           -- Ensure state has everything necessary
           -- @NOTE: RecordWildCards used to avoid bug with Scene
-          let idMatUni = Uniform "transform" (identity :: M44 Float)
+          let idMatUni = 
+                Uniform "transform" $ UniformData (identity :: M44 Float)
           modify $ \State{..} -> State
             { stateTime = now
             , stateScene = scene

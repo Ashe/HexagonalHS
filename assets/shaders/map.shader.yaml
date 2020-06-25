@@ -1,0 +1,2 @@
+vertex: map.vertex.glsl
+fragment: simple.fragment.glsl

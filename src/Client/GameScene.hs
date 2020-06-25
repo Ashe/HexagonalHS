@@ -50,7 +50,7 @@ createGameScene = do
   let camera = createCamera (V3 0 2 2) (-30) 270
 
   -- Create a random map
-  map <- liftIO $ randomMap 10
+  map <- liftIO $ randomMap 18
 
   -- Create a GameScene with this data
   pure $ GameScene camera map
@@ -70,13 +70,13 @@ onHandleEvent scene (EventWindowSize _ w h) = do
   let p = getProjectionMatrix size
   put $ state
     { stateGlobalUniforms = insert "projection" 
-        (Uniform "projection" p) (stateGlobalUniforms state) }
+        (Uniform "projection" $ UniformData p) (stateGlobalUniforms state) }
 
 -- Recreate map when F1 pressed
 onHandleEvent scene (EventKey _ GLFW.Key'F1 _ GLFW.KeyState'Pressed _) = do
 
   -- Recreate the map
-  map <- liftIO $ randomMap 20
+  map <- liftIO $ randomMap 18
 
   -- Update the scene
   let s = scene { gameSceneMap = map }
@@ -156,7 +156,8 @@ onUpdate scene dt = do
   -- Update state, including the newly updated scene
   put $ State
       { stateScene = scene { gameSceneCamera = newCamera }
-      , stateGlobalUniforms = insert "view" (Uniform "view" view) uniforms
+      , stateGlobalUniforms = insert "view" 
+          (Uniform "view" $ UniformData view) uniforms
       , .. }
 
 --------------------------------------------------------------------------------
@@ -167,7 +168,7 @@ onRender gs uniforms = do
 
   -- Retrieve map shader
   Env { envResources = rs } <- ask
-  mapShader  <- liftIO $ getShader rs "simple"
+  mapShader  <- liftIO $ getShader rs "map"
 
   -- Render the map with global uniforms
   R.render (gameSceneMap gs) mapShader uniforms

@@ -25,6 +25,7 @@ library
                         , linear
                         , grid
                         , yaml
+                        , vector
                         , random
                         , filepath
                         , directory
