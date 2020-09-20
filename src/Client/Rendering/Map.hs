@@ -20,7 +20,7 @@ import Linear.V4
 import Foreign.Ptr (Ptr, plusPtr, nullPtr)
 import Foreign.Storable (sizeOf)
 
-import Tides.Map
+import HexagonalHS.Map
 
 import Client.App hiding (render)
 import Client.App.Resources
