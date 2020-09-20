@@ -62,7 +62,7 @@ initialise w h = do
         startGame env state
 
   -- Run a function in the GLFW window
-  withWindow w h "Tides of Magic" start
+  withWindow w h "HexagonalHS of Magic" start
 
 -- Setup OpenGL
 setupOpenGL :: IO ()

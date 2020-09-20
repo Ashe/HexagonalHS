@@ -23,7 +23,7 @@ import Linear.V3
 import Linear.Matrix
 import Linear.Projection
 
-import Tides.Map
+import HexagonalHS.Map
 
 import Client.App
 import Client.App.Resources

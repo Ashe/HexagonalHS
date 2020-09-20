@@ -1,5 +1,5 @@
--- A module defining how maps are represented and interacted with in Tides 
-module Tides.Map
+-- A module defining how maps are represented and interacted with in HexagonalHS 
+module HexagonalHS.Map
   ( Map (..)
   , Index
   , blankMap
